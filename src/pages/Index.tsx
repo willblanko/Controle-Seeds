@@ -1,4 +1,4 @@
-import { Users, Calendar as CalendarIcon, CheckCircle } from 'lucide-react'
+import { Users, Calendar as CalendarIcon, CheckCircle, Cake } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts'
 
@@ -6,15 +6,18 @@ import { useApp } from '@/contexts/app-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 export default function Index() {
   const { seeds, events, attendances } = useApp()
 
   const activeSeeds = seeds.filter((s) => s.status === 'Ativo').length
 
-  const now = new Date().toISOString().split('T')[0]
-  const upcomingEvents = events.filter((e) => e.date >= now)
-  const pastEvents = events.filter((e) => e.date < now).sort((a, b) => a.date.localeCompare(b.date))
+  const nowString = new Date().toISOString().split('T')[0]
+  const upcomingEvents = events.filter((e) => e.date >= nowString)
+  const pastEvents = events
+    .filter((e) => e.date < nowString)
+    .sort((a, b) => a.date.localeCompare(b.date))
 
   const totalPossible = pastEvents.length * activeSeeds
   const actuallyPresent = attendances.filter(
@@ -29,6 +32,27 @@ export default function Index() {
       taxa: activeSeeds > 0 ? Math.round((eventAttendances / activeSeeds) * 100) : 0,
     }
   })
+
+  // Logic for seeds turning 14 in the next 180 days
+  const nowObj = new Date()
+  nowObj.setHours(0, 0, 0, 0)
+  const in180Days = new Date(nowObj.getTime() + 180 * 24 * 60 * 60 * 1000)
+
+  const turning14Seeds = seeds
+    .map((seed) => {
+      const bdParts = seed.birthDate.split('-')
+      const bYear = parseInt(bdParts[0])
+      const bMonth = parseInt(bdParts[1]) - 1
+      const bDay = parseInt(bdParts[2])
+      const fourteenthBday = new Date(bYear + 14, bMonth, bDay)
+
+      return {
+        ...seed,
+        fourteenthBday,
+      }
+    })
+    .filter((seed) => seed.fourteenthBday >= nowObj && seed.fourteenthBday <= in180Days)
+    .sort((a, b) => a.fourteenthBday.getTime() - b.fourteenthBday.getTime())
 
   return (
     <div className="space-y-6">
@@ -130,38 +154,78 @@ export default function Index() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-3 flex flex-col">
-          <CardHeader>
-            <CardTitle>Atividade Recente</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1">
-            <div className="space-y-4">
-              {pastEvents
-                .slice(-4)
-                .reverse()
-                .map((event, i) => (
+        <div className="lg:col-span-3 flex flex-col gap-4">
+          <Card className="flex-1 flex flex-col bg-primary/5 border-primary/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2 text-primary">
+                <Cake className="h-4 w-4" />
+                Próximos a completar 14 anos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {turning14Seeds.map((seed, i) => (
                   <div
-                    key={event.id}
-                    className="flex items-center gap-4 animate-slide-up"
+                    key={seed.id}
+                    className="flex items-center gap-3 animate-slide-up"
                     style={{ animationDelay: `${i * 100}ms` }}
                   >
-                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <CheckCircle className="h-4 w-4 text-primary" />
-                    </div>
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={seed.photo} />
+                      <AvatarFallback>{seed.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
                     <div className="flex flex-col flex-1 overflow-hidden">
-                      <p className="text-sm font-medium truncate">{event.title}</p>
+                      <p className="text-sm font-medium truncate">{seed.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(event.date).toLocaleDateString('pt-BR')} - {event.category}
+                        Aniversário em: {seed.fourteenthBday.toLocaleDateString('pt-BR')}
                       </p>
                     </div>
                   </div>
                 ))}
-              {pastEvents.length === 0 && (
-                <div className="text-center text-muted-foreground py-8">Nenhum evento passado.</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                {turning14Seeds.length === 0 && (
+                  <div className="text-center text-muted-foreground py-4 text-sm">
+                    Nenhum seed completará 14 anos nos próximos 6 meses.
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="flex-1 flex flex-col">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Atividade Recente</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {pastEvents
+                  .slice(-3)
+                  .reverse()
+                  .map((event, i) => (
+                    <div
+                      key={event.id}
+                      className="flex items-center gap-4 animate-slide-up"
+                      style={{ animationDelay: `${i * 100}ms` }}
+                    >
+                      <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                        <CheckCircle className="h-3.5 w-3.5 text-foreground/70" />
+                      </div>
+                      <div className="flex flex-col flex-1 overflow-hidden">
+                        <p className="text-sm font-medium truncate">{event.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(event.date).toLocaleDateString('pt-BR')} - {event.category}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                {pastEvents.length === 0 && (
+                  <div className="text-center text-muted-foreground py-4 text-sm">
+                    Nenhum evento passado.
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )

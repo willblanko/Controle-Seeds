@@ -1,14 +1,23 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react'
 
 export type Seed = {
   id: string
   name: string
-  email: string
-  phone: string
-  birthDate: string
+  photo?: string
+  entryMethod: 'Kids 4' | 'Novo Membro' | 'Convidado por Membro'
+  sex: 'Masculino' | 'Feminino' | 'Outro'
+  birthDate: string // YYYY-MM-DD
+  guardian1: string
+  guardian2?: string
+  phone1: string
+  phone2?: string
+  hasAllergy: boolean
+  allergyDetails?: string
+  hasMedication: boolean
+  medicationDetails?: string
+  notes?: string
   status: 'Ativo' | 'Inativo'
   registrationDate: string
-  notes?: string
 }
 
 export type Event = {
@@ -31,55 +40,90 @@ type AppContextType = {
   seeds: Seed[]
   events: Event[]
   attendances: Attendance[]
-  addSeed: (seed: Omit<Seed, 'id' | 'registrationDate'>) => void
+  addSeed: (
+    seed: Omit<Seed, 'id' | 'registrationDate' | 'status'> & { status?: 'Ativo' | 'Inativo' },
+  ) => void
   updateSeed: (id: string, seed: Partial<Seed>) => void
   addEvent: (event: Omit<Event, 'id'>) => void
   toggleAttendance: (eventId: string, seedId: string) => void
 }
 
+const now = new Date()
+const turning14In30Days = new Date(now.getFullYear() - 14, now.getMonth(), now.getDate() + 30)
+const turned14Recently = new Date(now.getFullYear() - 14, now.getMonth(), now.getDate() - 10)
+
 const MOCK_SEEDS: Seed[] = [
   {
     id: '1',
     name: 'Ana Silva',
-    email: 'ana.silva@example.com',
-    phone: '(11) 98765-4321',
-    birthDate: '2005-04-12',
+    photo: 'https://img.usecurling.com/ppl/thumbnail?gender=female&seed=1',
+    entryMethod: 'Kids 4',
+    sex: 'Feminino',
+    birthDate: '2015-04-12',
+    guardian1: 'Maria Silva',
+    phone1: '(11) 98765-4321',
+    hasAllergy: true,
+    allergyDetails: 'Amendoim',
+    hasMedication: false,
     status: 'Ativo',
     registrationDate: '2023-08-01',
   },
   {
     id: '2',
     name: 'Bruno Costa',
-    email: 'bruno.costa@example.com',
-    phone: '(11) 91234-5678',
-    birthDate: '2004-11-23',
-    status: 'Ativo',
+    photo: 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=2',
+    entryMethod: 'Novo Membro',
+    sex: 'Masculino',
+    birthDate: turned14Recently.toISOString().split('T')[0],
+    guardian1: 'João Costa',
+    phone1: '(11) 91234-5678',
+    hasAllergy: false,
+    hasMedication: true,
+    medicationDetails: 'Ritalina',
+    status: 'Ativo', // will be overriden by computed age logic
     registrationDate: '2023-08-15',
   },
   {
     id: '3',
     name: 'Carla Dias',
-    email: 'carla.dias@example.com',
-    phone: '(11) 99988-7766',
-    birthDate: '2006-02-05',
+    photo: 'https://img.usecurling.com/ppl/thumbnail?gender=female&seed=3',
+    entryMethod: 'Convidado por Membro',
+    sex: 'Feminino',
+    birthDate: turning14In30Days.toISOString().split('T')[0],
+    guardian1: 'Roberto Dias',
+    phone1: '(11) 99988-7766',
+    hasAllergy: false,
+    hasMedication: false,
     status: 'Ativo',
     registrationDate: '2023-09-10',
   },
   {
     id: '4',
     name: 'Diego Martins',
-    email: 'diego.martins@example.com',
-    phone: '(11) 97766-5544',
-    birthDate: '2003-08-30',
+    photo: 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=4',
+    entryMethod: 'Novo Membro',
+    sex: 'Masculino',
+    birthDate: '2013-08-30',
+    guardian1: 'Patrícia Martins',
+    phone1: '(11) 97766-5544',
+    hasAllergy: true,
+    allergyDetails: 'Poeira',
+    hasMedication: false,
     status: 'Inativo',
     registrationDate: '2023-07-22',
   },
   {
     id: '5',
     name: 'Elena Rocha',
-    email: 'elena.rocha@example.com',
-    phone: '(11) 95544-3322',
-    birthDate: '2007-01-18',
+    photo: 'https://img.usecurling.com/ppl/thumbnail?gender=female&seed=5',
+    entryMethod: 'Kids 4',
+    sex: 'Feminino',
+    birthDate: '2016-01-18',
+    guardian1: 'Carlos Rocha',
+    phone1: '(11) 95544-3322',
+    hasAllergy: false,
+    hasMedication: true,
+    medicationDetails: 'Bombinha de Asma',
     status: 'Ativo',
     registrationDate: '2023-10-05',
   },
@@ -104,15 +148,6 @@ const MOCK_EVENTS: Event[] = [
     location: 'Sala 3',
     category: 'Social',
   },
-  {
-    id: '3',
-    title: 'Palestra de Inovação',
-    description: 'Palestra sobre as novas tendências de mercado.',
-    date: '2024-06-05',
-    time: '10:00',
-    location: 'Anfiteatro',
-    category: 'Pedagógico',
-  },
 ]
 
 const MOCK_ATTENDANCES: Attendance[] = [
@@ -121,31 +156,51 @@ const MOCK_ATTENDANCES: Attendance[] = [
   { eventId: '1', seedId: '3', present: false },
   { eventId: '1', seedId: '4', present: false },
   { eventId: '1', seedId: '5', present: true },
-
   { eventId: '2', seedId: '1', present: true },
-  { eventId: '2', seedId: '2', present: true },
   { eventId: '2', seedId: '3', present: true },
-  { eventId: '2', seedId: '5', present: false },
 ]
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [seeds, setSeeds] = useState<Seed[]>(MOCK_SEEDS)
+  const [baseSeeds, setBaseSeeds] = useState<Seed[]>(MOCK_SEEDS)
   const [events, setEvents] = useState<Event[]>(MOCK_EVENTS)
   const [attendances, setAttendances] = useState<Attendance[]>(MOCK_ATTENDANCES)
 
-  const addSeed = (seedData: Omit<Seed, 'id' | 'registrationDate'>) => {
+  const computedSeeds = useMemo(() => {
+    return baseSeeds.map((seed) => {
+      const bdParts = seed.birthDate.split('-')
+      const bYear = parseInt(bdParts[0])
+      const bMonth = parseInt(bdParts[1]) - 1
+      const bDay = parseInt(bdParts[2])
+
+      const today = new Date()
+      let age = today.getFullYear() - bYear
+      if (today.getMonth() < bMonth || (today.getMonth() === bMonth && today.getDate() < bDay)) {
+        age--
+      }
+
+      return {
+        ...seed,
+        status: age >= 14 ? 'Inativo' : seed.status,
+      }
+    })
+  }, [baseSeeds])
+
+  const addSeed = (
+    seedData: Omit<Seed, 'id' | 'registrationDate' | 'status'> & { status?: 'Ativo' | 'Inativo' },
+  ) => {
     const newSeed: Seed = {
       ...seedData,
       id: Math.random().toString(36).substring(2, 9),
+      status: seedData.status || 'Ativo',
       registrationDate: new Date().toISOString().split('T')[0],
     }
-    setSeeds([...seeds, newSeed])
+    setBaseSeeds([...baseSeeds, newSeed])
   }
 
   const updateSeed = (id: string, seedData: Partial<Seed>) => {
-    setSeeds(seeds.map((s) => (s.id === id ? { ...s, ...seedData } : s)))
+    setBaseSeeds(baseSeeds.map((s) => (s.id === id ? { ...s, ...seedData } : s)))
   }
 
   const addEvent = (eventData: Omit<Event, 'id'>) => {
@@ -169,7 +224,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{ seeds, events, attendances, addSeed, updateSeed, addEvent, toggleAttendance }}
+      value={{
+        seeds: computedSeeds,
+        events,
+        attendances,
+        addSeed,
+        updateSeed,
+        addEvent,
+        toggleAttendance,
+      }}
     >
       {children}
     </AppContext.Provider>
