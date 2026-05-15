@@ -9,6 +9,7 @@ import Index from './pages/Index'
 import Seeds from './pages/Seeds'
 import Events from './pages/Events'
 import EventDetail from './pages/EventDetail'
+import Equipe from './pages/Equipe'
 import NotFound from './pages/NotFound'
 
 const App = () => (
@@ -21,6 +22,7 @@ const App = () => (
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
             <Route path="/seeds" element={<Seeds />} />
+            <Route path="/equipe" element={<Equipe />} />
             <Route path="/eventos" element={<Events />} />
             <Route path="/eventos/:id" element={<EventDetail />} />
           </Route>

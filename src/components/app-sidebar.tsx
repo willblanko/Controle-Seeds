@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Sprout, LayoutDashboard, Users, Calendar, Settings } from 'lucide-react'
+import { Sprout, LayoutDashboard, Users, UserCircle, Calendar, Settings } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -14,6 +14,7 @@ import {
 const items = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
   { title: 'Seeds', url: '/seeds', icon: Users },
+  { title: 'Equipe', url: '/equipe', icon: UserCircle },
   { title: 'Eventos', url: '/eventos', icon: Calendar },
 ]
 
