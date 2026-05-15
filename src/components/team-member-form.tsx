@@ -138,7 +138,7 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
             name="photoUrl"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Foto URL (Opcional)</FormLabel>
+                <FormLabel>Foto URL</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>

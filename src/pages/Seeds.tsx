@@ -54,14 +54,20 @@ import {
 
 const seedSchema = z
   .object({
-    name: z.string().min(3, 'Mínimo de 3 caracteres'),
+    name: z.string().min(1, 'Nome é obrigatório'),
     photo: z.any().optional(),
-    entryMethod: z.enum(['Kids 4', 'Novo Membro', 'Convidado por Membro']),
-    sex: z.enum(['Masculino', 'Feminino', 'Outro']),
-    birthDate: z.string().min(10, 'Data obrigatória'),
-    guardian1: z.string().min(3, 'Obrigatório'),
+    entryMethod: z.enum(['Kids 4', 'Novo Membro', 'Convidado por Membro'], {
+      required_error: 'Selecione uma opção',
+      invalid_type_error: 'Selecione uma opção',
+    }),
+    sex: z.enum(['Masculino', 'Feminino'], {
+      required_error: 'Selecione uma opção',
+      invalid_type_error: 'Selecione uma opção',
+    }),
+    birthDate: z.string().min(1, 'Data obrigatória'),
+    guardian1: z.string().optional(),
     guardian2: z.string().optional(),
-    phone1: z.string().min(10, 'Obrigatório'),
+    phone1: z.string().optional(),
     phone2: z.string().optional(),
     hasAllergy: z.enum(['yes', 'no']),
     allergyDetails: z.string().optional(),
@@ -126,8 +132,8 @@ export default function Seeds() {
     resolver: zodResolver(seedSchema),
     defaultValues: {
       name: '',
-      entryMethod: 'Kids 4',
-      sex: 'Masculino',
+      entryMethod: undefined as any,
+      sex: undefined as any,
       birthDate: '',
       guardian1: '',
       guardian2: '',
@@ -183,8 +189,8 @@ export default function Seeds() {
     setEditingSeedId(null)
     form.reset({
       name: '',
-      entryMethod: 'Kids 4',
-      sex: 'Masculino',
+      entryMethod: undefined as any,
+      sex: undefined as any,
       birthDate: '',
       guardian1: '',
       guardian2: '',
@@ -206,8 +212,8 @@ export default function Seeds() {
     form.reset({
       name: seed.name,
       photo: '', // File input cannot be programmatically populated with URL easily
-      entryMethod: seed.entryMethod,
-      sex: seed.sex,
+      entryMethod: seed.entryMethod as any,
+      sex: seed.sex as any,
       birthDate: seed.birthDate,
       guardian1: seed.guardian1,
       guardian2: seed.guardian2 || '',
@@ -234,9 +240,9 @@ export default function Seeds() {
         entryMethod: data.entryMethod,
         sex: data.sex,
         birthDate: data.birthDate,
-        guardian1: data.guardian1,
+        guardian1: data.guardian1 || '',
         guardian2: data.guardian2,
-        phone1: data.phone1,
+        phone1: data.phone1 || '',
         phone2: data.phone2,
         hasAllergy: data.hasAllergy === 'yes',
         allergyDetails: data.hasAllergy === 'yes' ? data.allergyDetails : undefined,
@@ -255,9 +261,9 @@ export default function Seeds() {
         entryMethod: data.entryMethod,
         sex: data.sex,
         birthDate: data.birthDate,
-        guardian1: data.guardian1,
+        guardian1: data.guardian1 || '',
         guardian2: data.guardian2,
-        phone1: data.phone1,
+        phone1: data.phone1 || '',
         phone2: data.phone2,
         hasAllergy: data.hasAllergy === 'yes',
         allergyDetails: data.hasAllergy === 'yes' ? data.allergyDetails : undefined,
@@ -321,7 +327,7 @@ export default function Seeds() {
                       name="name"
                       render={({ field }) => (
                         <FormItem className="sm:col-span-2">
-                          <FormLabel>Nome Completo</FormLabel>
+                          <FormLabel>Nome Completo*</FormLabel>
                           <FormControl>
                             <Input placeholder="Ex: João da Silva" {...field} />
                           </FormControl>
@@ -334,7 +340,7 @@ export default function Seeds() {
                       name="photo"
                       render={({ field: { value, onChange, ...field } }) => (
                         <FormItem>
-                          <FormLabel>Foto (Opcional)</FormLabel>
+                          <FormLabel>Foto</FormLabel>
                           <FormControl>
                             <Input
                               type="file"
@@ -352,7 +358,7 @@ export default function Seeds() {
                       name="birthDate"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Data de Nascimento</FormLabel>
+                          <FormLabel>Data de Nascimento*</FormLabel>
                           <FormControl>
                             <Input type="date" {...field} />
                           </FormControl>
@@ -365,11 +371,11 @@ export default function Seeds() {
                       name="entryMethod"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Forma de Ingresso</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormLabel>Forma de Ingresso*</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Selecione..." />
+                                <SelectValue placeholder="Selecione" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -389,17 +395,16 @@ export default function Seeds() {
                       name="sex"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Sexo</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormLabel>Sexo*</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Selecione..." />
+                                <SelectValue placeholder="Selecione" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
                               <SelectItem value="Masculino">Masculino</SelectItem>
                               <SelectItem value="Feminino">Feminino</SelectItem>
-                              <SelectItem value="Outro">Outro</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -445,7 +450,7 @@ export default function Seeds() {
                       name="guardian2"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Responsável 2 (Opcional)</FormLabel>
+                          <FormLabel>Responsável 2</FormLabel>
                           <FormControl>
                             <Input placeholder="Nome completo" {...field} />
                           </FormControl>
@@ -458,7 +463,7 @@ export default function Seeds() {
                       name="phone2"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Telefone 2 (Opcional)</FormLabel>
+                          <FormLabel>Telefone 2</FormLabel>
                           <FormControl>
                             <Input placeholder="(11) 99999-9999" {...field} />
                           </FormControl>
