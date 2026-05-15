@@ -1,12 +1,11 @@
 import { Users, Calendar as CalendarIcon, CheckCircle, Cake, Gift } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts'
 
 import { useApp } from '@/contexts/app-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 
 export default function Index() {
   const { seeds, events, attendances } = useApp()
@@ -25,15 +24,13 @@ export default function Index() {
   ).length
   const avgAttendance = totalPossible > 0 ? Math.round((actuallyPresent / totalPossible) * 100) : 0
 
-  const chartData = pastEvents.slice(-5).map((event) => {
-    const eventAttendances = attendances.filter(
-      (a) => a.eventId === event.id && a.type === 'seed' && a.present,
-    ).length
-    return {
-      name: event.title.length > 15 ? event.title.substring(0, 15) + '...' : event.title,
-      taxa: activeSeeds > 0 ? Math.round((eventAttendances / activeSeeds) * 100) : 0,
-    }
-  })
+  const lastEvent = pastEvents
+    .slice()
+    .reverse()
+    .find((e) => {
+      const cat = e.category.toLowerCase()
+      return cat !== 'reunião' && cat !== 'reuniao'
+    })
 
   // Logic for seeds turning 14 in the next 180 days
   const nowObj = new Date()
@@ -125,46 +122,53 @@ export default function Index() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4 flex flex-col">
           <CardHeader>
-            <CardTitle>Taxa de Presença (%)</CardTitle>
+            <CardTitle>Último Evento</CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 min-h-[300px]">
-            {chartData.length > 0 ? (
-              <ChartContainer
-                config={{ taxa: { label: 'Presença', color: 'hsl(var(--primary))' } }}
-                className="h-[300px] w-full"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                      stroke="hsl(var(--border))"
-                    />
-                    <XAxis
-                      dataKey="name"
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                      tickFormatter={(val) => `${val}%`}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar
-                      dataKey="taxa"
-                      fill="var(--color-taxa)"
-                      radius={[4, 4, 0, 0]}
-                      maxBarSize={40}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+          <CardContent className="flex-1 min-h-[300px] flex flex-col">
+            {lastEvent ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6 bg-secondary/20 rounded-xl p-8 border border-secondary/50">
+                <div className="h-16 w-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-2">
+                  <CalendarIcon className="h-8 w-8" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-3xl font-bold tracking-tight">{lastEvent.title}</h3>
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Badge variant="secondary" className="font-normal">
+                      {lastEvent.category}
+                    </Badge>
+                    <span>•</span>
+                    <span>
+                      {new Date(lastEvent.date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-8 w-full max-w-sm pt-4 border-t border-border/50">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Presenças (Seeds)</p>
+                    <p className="text-4xl font-bold text-foreground">
+                      {
+                        attendances.filter(
+                          (a) => a.eventId === lastEvent.id && a.present && a.type === 'seed',
+                        ).length
+                      }
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Presenças (Equipe)</p>
+                    <p className="text-4xl font-bold text-foreground">
+                      {
+                        attendances.filter(
+                          (a) => a.eventId === lastEvent.id && a.present && a.type === 'team',
+                        ).length
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
             ) : (
-              <div className="h-full flex items-center justify-center text-muted-foreground border border-dashed rounded-lg">
-                Sem dados suficientes
+              <div className="flex-1 flex items-center justify-center text-muted-foreground border border-dashed rounded-lg">
+                Nenhum evento recente encontrado
               </div>
             )}
           </CardContent>
@@ -264,7 +268,8 @@ export default function Index() {
                       <div className="flex flex-col flex-1 overflow-hidden">
                         <p className="text-sm font-medium truncate">{event.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(event.date).toLocaleDateString('pt-BR')} - {event.category}
+                          {new Date(event.date + 'T12:00:00').toLocaleDateString('pt-BR')} -{' '}
+                          {event.category}
                         </p>
                       </div>
                     </div>
