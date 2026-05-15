@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, X } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -95,6 +95,10 @@ export default function Seeds() {
   const [openNew, setOpenNew] = useState(false)
   const [selectedSeed, setSelectedSeed] = useState<Seed | null>(null)
 
+  const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [filterSex, setFilterSex] = useState<string>('all')
+  const [filterEntry, setFilterEntry] = useState<string>('all')
+
   const allAllergies = useMemo(
     () =>
       Array.from(
@@ -135,11 +139,24 @@ export default function Seeds() {
     },
   })
 
-  const filteredSeeds = seeds.filter(
-    (s) =>
+  const filteredSeeds = seeds.filter((s) => {
+    const matchSearch =
       s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.guardian1.toLowerCase().includes(search.toLowerCase()),
-  )
+      s.guardian1.toLowerCase().includes(search.toLowerCase())
+
+    const matchStatus = filterStatus === 'all' || s.status === filterStatus
+    const matchSex = filterSex === 'all' || s.sex === filterSex
+    const matchEntry = filterEntry === 'all' || s.entryMethod === filterEntry
+
+    return matchSearch && matchStatus && matchSex && matchEntry
+  })
+
+  const hasActiveFilters = filterStatus !== 'all' || filterSex !== 'all' || filterEntry !== 'all'
+  const clearFilters = () => {
+    setFilterStatus('all')
+    setFilterSex('all')
+    setFilterEntry('all')
+  }
 
   function onSubmit(data: z.infer<typeof seedSchema>) {
     const generatedPhoto = `https://img.usecurling.com/ppl/thumbnail?gender=${data.sex === 'Feminino' ? 'female' : 'male'}&seed=${Math.random().toString().substring(2, 6)}`
@@ -501,7 +518,7 @@ export default function Seeds() {
         </Sheet>
       </div>
 
-      <div className="flex items-center">
+      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -510,6 +527,53 @@ export default function Seeds() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-full sm:w-[140px] bg-card">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Status</SelectItem>
+              <SelectItem value="Ativo">Ativo</SelectItem>
+              <SelectItem value="Inativo">Inativo</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filterSex} onValueChange={setFilterSex}>
+            <SelectTrigger className="w-full sm:w-[140px] bg-card">
+              <SelectValue placeholder="Sexo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos (Sexo)</SelectItem>
+              <SelectItem value="Masculino">Menino</SelectItem>
+              <SelectItem value="Feminino">Menina</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filterEntry} onValueChange={setFilterEntry}>
+            <SelectTrigger className="w-full sm:w-[180px] bg-card">
+              <SelectValue placeholder="Forma de Ingresso" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Formas</SelectItem>
+              <SelectItem value="Kids 4">Kids 4</SelectItem>
+              <SelectItem value="Novo Membro">Novo Membro</SelectItem>
+              <SelectItem value="Convidado por Membro">Convidado por Membro</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              onClick={clearFilters}
+              className="px-2 lg:px-3 text-muted-foreground hover:text-foreground shrink-0 w-full sm:w-auto"
+            >
+              Limpar Filtros
+              <X className="ml-2 h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 
