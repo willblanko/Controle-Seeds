@@ -56,6 +56,7 @@ export default function Events() {
   const { events, addEvent } = useApp()
   const { toast } = useToast()
   const [openNew, setOpenNew] = useState(false)
+  const [categoryFilter, setCategoryFilter] = useState('all')
 
   const form = useForm<z.infer<typeof eventSchema>>({
     resolver: zodResolver(eventSchema),
@@ -89,9 +90,11 @@ export default function Events() {
 
   const now = new Date().toISOString().split('T')[0]
   const upcomingEvents = events
-    .filter((e) => e.date >= now)
+    .filter((e) => e.date >= now && (categoryFilter === 'all' || e.category === categoryFilter))
     .sort((a, b) => a.date.localeCompare(b.date))
-  const pastEvents = events.filter((e) => e.date < now).sort((a, b) => b.date.localeCompare(a.date))
+  const pastEvents = events
+    .filter((e) => e.date < now && (categoryFilter === 'all' || e.category === categoryFilter))
+    .sort((a, b) => b.date.localeCompare(a.date))
 
   const EventCard = ({ event }: { event: any }) => (
     <Card className="hover:shadow-md transition-shadow flex flex-col h-full bg-card">
@@ -252,14 +255,32 @@ export default function Events() {
       </div>
 
       <Tabs defaultValue="upcoming" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="upcoming">Próximos</TabsTrigger>
-          <TabsTrigger value="past">Passados</TabsTrigger>
-        </TabsList>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <TabsList>
+            <TabsTrigger value="upcoming">Próximos</TabsTrigger>
+            <TabsTrigger value="past">Passados</TabsTrigger>
+          </TabsList>
+
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-full sm:w-[200px] bg-card">
+              <SelectValue placeholder="Categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Categorias</SelectItem>
+              <SelectItem value="Hangout">Hangout</SelectItem>
+              <SelectItem value="Culto">Culto</SelectItem>
+              <SelectItem value="Connection">Connection</SelectItem>
+              <SelectItem value="Camp">Camp</SelectItem>
+              <SelectItem value="Reunião">Reunião</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <TabsContent value="upcoming" className="animate-fade-in">
           {upcomingEvents.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground bg-card rounded-lg border border-dashed shadow-sm">
-              Nenhum evento agendado.
+              {categoryFilter === 'all'
+                ? 'Nenhum evento agendado.'
+                : 'Nenhum evento encontrado para esta categoria.'}
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -278,7 +299,9 @@ export default function Events() {
         <TabsContent value="past" className="animate-fade-in">
           {pastEvents.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground bg-card rounded-lg border border-dashed shadow-sm">
-              Nenhum evento passado.
+              {categoryFilter === 'all'
+                ? 'Nenhum evento passado.'
+                : 'Nenhum evento encontrado para esta categoria.'}
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
