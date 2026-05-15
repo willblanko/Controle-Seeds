@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, Pencil } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -90,11 +90,14 @@ const seedSchema = z
   )
 
 export default function Seeds() {
-  const { seeds, addSeed } = useApp()
+  const { seeds, addSeed, updateSeed } = useApp()
   const { toast } = useToast()
   const [search, setSearch] = useState('')
   const [openNew, setOpenNew] = useState(false)
   const [selectedSeed, setSelectedSeed] = useState<Seed | null>(null)
+
+  const [sheetMode, setSheetMode] = useState<'create' | 'edit'>('create')
+  const [editingSeedId, setEditingSeedId] = useState<string | null>(null)
 
   const [quickFilter, setQuickFilter] = useState<string>('all')
 
@@ -175,32 +178,101 @@ export default function Seeds() {
     return matchSearch && matchFilter
   })
 
-  function onSubmit(data: z.infer<typeof seedSchema>) {
-    const generatedPhoto = `https://img.usecurling.com/ppl/thumbnail?gender=${data.sex === 'Feminino' ? 'female' : 'male'}&seed=${Math.random().toString().substring(2, 6)}`
-
-    addSeed({
-      name: data.name,
-      photo: generatedPhoto,
-      entryMethod: data.entryMethod,
-      sex: data.sex,
-      birthDate: data.birthDate,
-      guardian1: data.guardian1,
-      guardian2: data.guardian2,
-      phone1: data.phone1,
-      phone2: data.phone2,
-      hasAllergy: data.hasAllergy === 'yes',
-      allergyDetails: data.hasAllergy === 'yes' ? data.allergyDetails : undefined,
-      hasMedication: data.hasMedication === 'yes',
-      medicationDetails: data.hasMedication === 'yes' ? data.medicationDetails : undefined,
-      notes: data.notes,
+  function handleOpenCreate() {
+    setSheetMode('create')
+    setEditingSeedId(null)
+    form.reset({
+      name: '',
+      entryMethod: 'Kids 4',
+      sex: 'Masculino',
+      birthDate: '',
+      guardian1: '',
+      guardian2: '',
+      phone1: '',
+      phone2: '',
+      hasAllergy: 'no',
+      allergyDetails: '',
+      hasMedication: 'no',
+      medicationDetails: '',
+      notes: '',
     })
+    setOpenNew(true)
+  }
+
+  function handleEditSeed(seed: Seed) {
+    setSheetMode('edit')
+    setEditingSeedId(seed.id)
+    setSelectedSeed(null)
+    form.reset({
+      name: seed.name,
+      photo: '', // File input cannot be programmatically populated with URL easily
+      entryMethod: seed.entryMethod,
+      sex: seed.sex,
+      birthDate: seed.birthDate,
+      guardian1: seed.guardian1,
+      guardian2: seed.guardian2 || '',
+      phone1: seed.phone1,
+      phone2: seed.phone2 || '',
+      hasAllergy: seed.hasAllergy ? 'yes' : 'no',
+      allergyDetails: seed.allergyDetails || '',
+      hasMedication: seed.hasMedication ? 'yes' : 'no',
+      medicationDetails: seed.medicationDetails || '',
+      notes: seed.notes || '',
+    })
+    setOpenNew(true)
+  }
+
+  function onSubmit(data: z.infer<typeof seedSchema>) {
+    if (sheetMode === 'create') {
+      const generatedPhoto =
+        data.photo ||
+        `https://img.usecurling.com/ppl/thumbnail?gender=${data.sex === 'Feminino' ? 'female' : 'male'}&seed=${Math.random().toString().substring(2, 6)}`
+
+      addSeed({
+        name: data.name,
+        photo: generatedPhoto,
+        entryMethod: data.entryMethod,
+        sex: data.sex,
+        birthDate: data.birthDate,
+        guardian1: data.guardian1,
+        guardian2: data.guardian2,
+        phone1: data.phone1,
+        phone2: data.phone2,
+        hasAllergy: data.hasAllergy === 'yes',
+        allergyDetails: data.hasAllergy === 'yes' ? data.allergyDetails : undefined,
+        hasMedication: data.hasMedication === 'yes',
+        medicationDetails: data.hasMedication === 'yes' ? data.medicationDetails : undefined,
+        notes: data.notes,
+      })
+      toast({
+        title: 'Sucesso',
+        description: 'Seed cadastrado com sucesso!',
+      })
+    } else if (editingSeedId) {
+      updateSeed(editingSeedId, {
+        name: data.name,
+        ...(data.photo ? { photo: data.photo } : {}),
+        entryMethod: data.entryMethod,
+        sex: data.sex,
+        birthDate: data.birthDate,
+        guardian1: data.guardian1,
+        guardian2: data.guardian2,
+        phone1: data.phone1,
+        phone2: data.phone2,
+        hasAllergy: data.hasAllergy === 'yes',
+        allergyDetails: data.hasAllergy === 'yes' ? data.allergyDetails : undefined,
+        hasMedication: data.hasMedication === 'yes',
+        medicationDetails: data.hasMedication === 'yes' ? data.medicationDetails : undefined,
+        notes: data.notes,
+      })
+      toast({
+        title: 'Sucesso',
+        description: 'Seed atualizado com sucesso!',
+      })
+    }
 
     setOpenNew(false)
     form.reset()
-    toast({
-      title: 'Sucesso',
-      description: 'Seed cadastrado com sucesso!',
-    })
   }
 
   return (
@@ -223,16 +295,18 @@ export default function Seeds() {
         </div>
 
         <Sheet open={openNew} onOpenChange={setOpenNew}>
-          <SheetTrigger asChild>
-            <Button className="shrink-0">
-              <Plus className="mr-2 h-4 w-4" /> Novo Seed
-            </Button>
-          </SheetTrigger>
+          <Button className="shrink-0" onClick={handleOpenCreate}>
+            <Plus className="mr-2 h-4 w-4" /> Novo Seed
+          </Button>
           <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
             <SheetHeader className="mb-6">
-              <SheetTitle>Cadastrar Novo Seed</SheetTitle>
+              <SheetTitle>
+                {sheetMode === 'create' ? 'Cadastrar Novo Seed' : 'Editar Seed'}
+              </SheetTitle>
               <SheetDescription>
-                Preencha os detalhes para registrar um novo aluno.
+                {sheetMode === 'create'
+                  ? 'Preencha os detalhes para registrar um novo aluno.'
+                  : 'Atualize as informações do aluno.'}
               </SheetDescription>
             </SheetHeader>
             <Form {...form}>
@@ -527,7 +601,7 @@ export default function Seeds() {
                 </div>
 
                 <Button type="submit" className="w-full">
-                  Salvar Cadastro
+                  {sheetMode === 'create' ? 'Salvar Cadastro' : 'Salvar Alterações'}
                 </Button>
               </form>
             </Form>
@@ -640,7 +714,12 @@ export default function Seeds() {
         {selectedSeed && (
           <DialogContent className="sm:max-w-xl">
             <DialogHeader>
-              <DialogTitle>Perfil do Seed</DialogTitle>
+              <div className="flex items-center justify-between">
+                <DialogTitle>Perfil do Seed</DialogTitle>
+                <Button variant="ghost" size="icon" onClick={() => handleEditSeed(selectedSeed)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
               <DialogDescription>
                 Detalhes completos e informações médicas do aluno.
               </DialogDescription>
