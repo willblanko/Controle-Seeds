@@ -51,6 +51,7 @@ type AppContextType = {
 const now = new Date()
 const turning14In30Days = new Date(now.getFullYear() - 14, now.getMonth(), now.getDate() + 30)
 const turned14Recently = new Date(now.getFullYear() - 14, now.getMonth(), now.getDate() - 10)
+const birthdayThisMonth = new Date(now.getFullYear() - 10, now.getMonth(), 15)
 
 const MOCK_SEEDS: Seed[] = [
   {
@@ -126,6 +127,20 @@ const MOCK_SEEDS: Seed[] = [
     medicationDetails: 'Bombinha de Asma',
     status: 'Ativo',
     registrationDate: '2023-10-05',
+  },
+  {
+    id: '6',
+    name: 'Felipe Santos',
+    photo: 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=6',
+    entryMethod: 'Novo Membro',
+    sex: 'Masculino',
+    birthDate: birthdayThisMonth.toISOString().split('T')[0],
+    guardian1: 'Carlos Santos',
+    phone1: '(11) 95544-1122',
+    hasAllergy: false,
+    hasMedication: false,
+    status: 'Ativo',
+    registrationDate: '2023-11-20',
   },
 ]
 

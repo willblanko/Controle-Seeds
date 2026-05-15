@@ -1,4 +1,4 @@
-import { Users, Calendar as CalendarIcon, CheckCircle, Cake } from 'lucide-react'
+import { Users, Calendar as CalendarIcon, CheckCircle, Cake, Gift } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts'
 
@@ -53,6 +53,20 @@ export default function Index() {
     })
     .filter((seed) => seed.fourteenthBday >= nowObj && seed.fourteenthBday <= in180Days)
     .sort((a, b) => a.fourteenthBday.getTime() - b.fourteenthBday.getTime())
+
+  const currentMonth = nowObj.getMonth() + 1
+  const birthdaysThisMonth = seeds
+    .filter((seed) => seed.status === 'Ativo')
+    .filter((seed) => {
+      const bdParts = seed.birthDate.split('-')
+      const bMonth = parseInt(bdParts[1], 10)
+      return bMonth === currentMonth
+    })
+    .sort((a, b) => {
+      const aDay = parseInt(a.birthDate.split('-')[2], 10)
+      const bDay = parseInt(b.birthDate.split('-')[2], 10)
+      return aDay - bDay
+    })
 
   return (
     <div className="space-y-6">
@@ -155,7 +169,43 @@ export default function Index() {
         </Card>
 
         <div className="lg:col-span-3 flex flex-col gap-4">
-          <Card className="flex-1 flex flex-col bg-primary/5 border-primary/20">
+          <Card className="flex flex-col">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Gift className="h-4 w-4 text-primary" />
+                Aniversariantes do Mês
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {birthdaysThisMonth.map((seed, i) => (
+                  <div
+                    key={seed.id}
+                    className="flex items-center gap-3 animate-slide-up"
+                    style={{ animationDelay: `${i * 100}ms` }}
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={seed.photo} />
+                      <AvatarFallback>{seed.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col flex-1 overflow-hidden">
+                      <p className="text-sm font-medium truncate">{seed.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Dia {parseInt(seed.birthDate.split('-')[2], 10)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {birthdaysThisMonth.length === 0 && (
+                  <div className="text-center text-muted-foreground py-4 text-sm">
+                    Nenhum aniversariante este mês.
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="flex flex-col bg-primary/5 border-primary/20">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2 text-primary">
                 <Cake className="h-4 w-4" />
@@ -191,7 +241,7 @@ export default function Index() {
             </CardContent>
           </Card>
 
-          <Card className="flex-1 flex flex-col">
+          <Card className="flex flex-col">
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Atividade Recente</CardTitle>
             </CardHeader>
