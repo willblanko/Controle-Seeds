@@ -255,25 +255,32 @@ export default function Events() {
       </div>
 
       <Tabs defaultValue="upcoming" className="w-full">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-          <TabsList>
+        <div className="flex flex-col gap-4 mb-6">
+          <TabsList className="w-fit">
             <TabsTrigger value="upcoming">Próximos</TabsTrigger>
             <TabsTrigger value="past">Passados</TabsTrigger>
           </TabsList>
 
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-full sm:w-[200px] bg-card">
-              <SelectValue placeholder="Categoria" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as Categorias</SelectItem>
-              <SelectItem value="Hangout">Hangout</SelectItem>
-              <SelectItem value="Culto">Culto</SelectItem>
-              <SelectItem value="Connection">Connection</SelectItem>
-              <SelectItem value="Camp">Camp</SelectItem>
-              <SelectItem value="Reunião">Reunião</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { id: 'all', label: 'Todos' },
+              { id: 'Hangout', label: 'Hangout' },
+              { id: 'Culto', label: 'Culto' },
+              { id: 'Connection', label: 'Connection' },
+              { id: 'Camp', label: 'Camp' },
+              { id: 'Reunião', label: 'Reunião' },
+            ].map((cat) => (
+              <Button
+                key={cat.id}
+                variant={categoryFilter === cat.id ? 'default' : 'secondary'}
+                size="sm"
+                onClick={() => setCategoryFilter(cat.id)}
+                className="rounded-full"
+              >
+                {cat.label}
+              </Button>
+            ))}
+          </div>
         </div>
         <TabsContent value="upcoming" className="animate-fade-in">
           {upcomingEvents.length === 0 ? (
