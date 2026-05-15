@@ -291,7 +291,7 @@ export default function Seeds() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Diretório de Seeds</h2>
-          <p className="text-muted-foreground">Gerencie os alunos cadastrados no sistema.</p>
+          <p className="text-muted-foreground">Gerencie os Seeds cadastrados no sistema.</p>
         </div>
 
         <Sheet open={openNew} onOpenChange={setOpenNew}>
@@ -305,8 +305,8 @@ export default function Seeds() {
               </SheetTitle>
               <SheetDescription>
                 {sheetMode === 'create'
-                  ? 'Preencha os detalhes para registrar um novo aluno.'
-                  : 'Atualize as informações do aluno.'}
+                  ? 'Preencha os detalhes para registrar um novo Seed.'
+                  : 'Atualize as informações do Seed.'}
               </SheetDescription>
             </SheetHeader>
             <Form {...form}>
@@ -721,7 +721,7 @@ export default function Seeds() {
                 </Button>
               </div>
               <DialogDescription>
-                Detalhes completos e informações médicas do aluno.
+                Detalhes completos e informações médicas do Seed.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-6 py-4">

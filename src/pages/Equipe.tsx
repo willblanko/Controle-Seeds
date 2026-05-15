@@ -25,48 +25,7 @@ import { useToast } from '@/hooks/use-toast'
 import { TeamMember } from '@/types/team'
 import { TeamMemberForm } from '@/components/team-member-form'
 import { cn } from '@/lib/utils'
-
-const INITIAL_MEMBERS: TeamMember[] = [
-  {
-    id: '1',
-    name: 'Alvanice',
-    photoUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=female&seed=1',
-    email: 'alvanice@example.com',
-    dateOfBirth: '1985-05-12',
-    role: 'Líder',
-    courses: {
-      cme: { status: 'Completo', completionYear: '2020' },
-      ebm: { status: 'Em progresso' },
-      te: { status: 'Não feito' },
-    },
-  },
-  {
-    id: '2',
-    name: 'Amaury Silva',
-    photoUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=2',
-    email: 'amaury@example.com',
-    dateOfBirth: '1990-10-21',
-    role: 'Membro',
-    courses: {
-      cme: { status: 'Completo', completionYear: '2018' },
-      ebm: { status: 'Completo', completionYear: '2021' },
-      te: { status: 'Em progresso' },
-    },
-  },
-  {
-    id: '3',
-    name: 'Ana Carolina Dias',
-    photoUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=female&seed=3',
-    email: 'anacarol@example.com',
-    dateOfBirth: '1995-03-15',
-    role: 'Líder',
-    courses: {
-      cme: { status: 'Não feito' },
-      ebm: { status: 'Não feito' },
-      te: { status: 'Não feito' },
-    },
-  },
-]
+import { useApp } from '@/contexts/app-context'
 
 function calculateAge(dob: string) {
   if (!dob) return 0
@@ -84,7 +43,7 @@ function memberRoleColors(role: string) {
 type FilterRole = 'Todos' | 'Líderes' | 'Membros' | 'CME' | 'EBM' | 'TE'
 
 export default function Equipe() {
-  const [members, setMembers] = useState<TeamMember[]>(INITIAL_MEMBERS)
+  const { teamMembers, addTeamMember, updateTeamMember } = useApp()
   const [search, setSearch] = useState('')
   const [filterRole, setFilterRole] = useState<FilterRole>('Todos')
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -93,7 +52,7 @@ export default function Equipe() {
   const { toast } = useToast()
 
   const filteredMembers = useMemo(() => {
-    return members.filter((member) => {
+    return teamMembers.filter((member) => {
       const matchesSearch = member.name.toLowerCase().includes(search.toLowerCase())
       let matchesRole = true
 
@@ -121,30 +80,25 @@ export default function Equipe() {
 
       return matchesSearch && matchesRole
     })
-  }, [members, search, filterRole])
+  }, [teamMembers, search, filterRole])
 
   const handleAddMember = (data: Omit<TeamMember, 'id'>) => {
-    const newMember: TeamMember = {
-      ...data,
-      id: Math.random().toString(36).substr(2, 9),
-    }
-    setMembers((prev) => [...prev, newMember])
+    addTeamMember(data)
     setIsCreateOpen(false)
     toast({
       title: 'Membro adicionado',
-      description: `${newMember.name} foi adicionado à equipe com sucesso.`,
+      description: `${data.name} foi adicionado à equipe com sucesso.`,
     })
   }
 
   const handleUpdateMember = (data: Omit<TeamMember, 'id'>) => {
     if (selectedMember) {
-      const updated = { ...data, id: selectedMember.id }
-      setMembers((prev) => prev.map((m) => (m.id === selectedMember.id ? updated : m)))
+      updateTeamMember(selectedMember.id, data)
       setIsEditMode(false)
-      setSelectedMember(updated)
+      setSelectedMember({ ...data, id: selectedMember.id })
       toast({
         title: 'Membro atualizado',
-        description: `${updated.name} foi atualizado com sucesso.`,
+        description: `${data.name} foi atualizado com sucesso.`,
       })
     }
   }

@@ -21,12 +21,14 @@ export default function Index() {
 
   const totalPossible = pastEvents.length * activeSeeds
   const actuallyPresent = attendances.filter(
-    (a) => a.present && pastEvents.find((e) => e.id === a.eventId),
+    (a) => a.present && a.type === 'seed' && pastEvents.find((e) => e.id === a.eventId),
   ).length
   const avgAttendance = totalPossible > 0 ? Math.round((actuallyPresent / totalPossible) * 100) : 0
 
   const chartData = pastEvents.slice(-5).map((event) => {
-    const eventAttendances = attendances.filter((a) => a.eventId === event.id && a.present).length
+    const eventAttendances = attendances.filter(
+      (a) => a.eventId === event.id && a.type === 'seed' && a.present,
+    ).length
     return {
       name: event.title.length > 15 ? event.title.substring(0, 15) + '...' : event.title,
       taxa: activeSeeds > 0 ? Math.round((eventAttendances / activeSeeds) * 100) : 0,
@@ -93,7 +95,7 @@ export default function Index() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{activeSeeds}</div>
-            <p className="text-xs text-muted-foreground mt-1">Alunos matriculados</p>
+            <p className="text-xs text-muted-foreground mt-1">Seeds matriculados</p>
           </CardContent>
         </Card>
 
@@ -234,7 +236,7 @@ export default function Index() {
                 ))}
                 {turning14Seeds.length === 0 && (
                   <div className="text-center text-muted-foreground py-4 text-sm">
-                    Nenhum seed completará 14 anos nos próximos 6 meses.
+                    Nenhum Seed completará 14 anos nos próximos 6 meses.
                   </div>
                 )}
               </div>

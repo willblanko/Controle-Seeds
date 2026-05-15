@@ -77,6 +77,14 @@ export default function Events() {
       title: 'Sucesso',
       description: 'Evento agendado com sucesso!',
     })
+
+    // Sincronização automatizada simulada com Google Calendar
+    setTimeout(() => {
+      toast({
+        title: 'Integração Google Calendar',
+        description: 'Evento sincronizado com sucesso e convites enviados para a Equipe.',
+      })
+    }, 1500)
   }
 
   const now = new Date().toISOString().split('T')[0]
@@ -169,10 +177,11 @@ export default function Events() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Pedagógico">Pedagógico</SelectItem>
-                          <SelectItem value="Social">Social</SelectItem>
-                          <SelectItem value="Técnico">Técnico</SelectItem>
-                          <SelectItem value="Outros">Outros</SelectItem>
+                          <SelectItem value="Hangout">Hangout</SelectItem>
+                          <SelectItem value="Culto">Culto</SelectItem>
+                          <SelectItem value="Connection">Connection</SelectItem>
+                          <SelectItem value="Camp">Camp</SelectItem>
+                          <SelectItem value="Reunião">Reunião</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

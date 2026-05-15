@@ -1,16 +1,18 @@
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, MapPin, Clock, CalendarDays, CheckCircle } from 'lucide-react'
+import { ArrowLeft, MapPin, Clock, CalendarDays } from 'lucide-react'
 
 import { useApp } from '@/contexts/app-context'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 
 export default function EventDetail() {
   const { id } = useParams()
-  const { events, seeds, attendances, toggleAttendance } = useApp()
+  const { events, seeds, teamMembers, attendances, toggleAttendance } = useApp()
   const { toast } = useToast()
 
   const event = events.find((e) => e.id === id)
@@ -27,7 +29,12 @@ export default function EventDetail() {
   }
 
   const activeSeeds = seeds.filter((s) => s.status === 'Ativo')
-  const presentCount = attendances.filter((a) => a.eventId === id && a.present).length
+  const presentSeedsCount = attendances.filter(
+    (a) => a.eventId === id && a.type === 'seed' && a.present,
+  ).length
+  const presentTeamCount = attendances.filter(
+    (a) => a.eventId === id && a.type === 'team' && a.present,
+  ).length
 
   const handleSaveNotes = () => {
     toast({
@@ -67,46 +74,103 @@ export default function EventDetail() {
       <div className="grid gap-6 md:grid-cols-3">
         <div className="md:col-span-2 space-y-6">
           <Card className="shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b">
               <div>
-                <CardTitle>Lista de Presença</CardTitle>
-                <CardDescription>Marque os seeds presentes no evento.</CardDescription>
-              </div>
-              <div className="flex items-center gap-2 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-sm font-semibold">
-                <CheckCircle className="h-4 w-4" />
-                {presentCount} / {activeSeeds.length} Presentes
+                <CardTitle>Aba de Presença</CardTitle>
+                <CardDescription>
+                  Marque a participação da equipe e dos Seeds neste evento.
+                </CardDescription>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3 mt-2">
-                {activeSeeds.map((seed, i) => {
-                  const isPresent = attendances.some(
-                    (a) => a.eventId === event.id && a.seedId === seed.id && a.present,
-                  )
-                  return (
-                    <div
-                      key={seed.id}
-                      className={`flex items-center justify-between p-3 rounded-lg border transition-colors animate-fade-in ${isPresent ? 'border-primary/50 bg-primary/5' : 'bg-card'}`}
-                      style={{ animationDelay: `${i * 30}ms` }}
-                    >
-                      <div>
-                        <p className="font-medium text-sm">{seed.name}</p>
-                        <p className="text-xs text-muted-foreground">{seed.email}</p>
+            <CardContent className="pt-6">
+              <Tabs defaultValue="seeds" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="seeds" className="gap-2">
+                    Seeds{' '}
+                    <Badge variant="secondary" className="ml-1 rounded-full">
+                      {presentSeedsCount}/{activeSeeds.length}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="team" className="gap-2">
+                    Equipe{' '}
+                    <Badge variant="secondary" className="ml-1 rounded-full">
+                      {presentTeamCount}/{teamMembers.length}
+                    </Badge>
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="seeds" className="space-y-3 mt-4">
+                  {activeSeeds.map((seed, i) => {
+                    const isPresent = attendances.some(
+                      (a) =>
+                        a.eventId === event.id &&
+                        a.participantId === seed.id &&
+                        a.type === 'seed' &&
+                        a.present,
+                    )
+                    return (
+                      <div
+                        key={seed.id}
+                        className={`flex items-center justify-between p-3 rounded-lg border transition-colors animate-fade-in ${
+                          isPresent ? 'border-primary/50 bg-primary/5' : 'bg-card'
+                        }`}
+                        style={{ animationDelay: `${i * 30}ms` }}
+                      >
+                        <div>
+                          <p className="font-medium text-sm">{seed.name}</p>
+                          <p className="text-xs text-muted-foreground">Contato: {seed.guardian1}</p>
+                        </div>
+                        <Switch
+                          checked={isPresent}
+                          onCheckedChange={() => toggleAttendance(event.id, seed.id, 'seed')}
+                          aria-label={`Marcar presença para o Seed ${seed.name}`}
+                        />
                       </div>
-                      <Switch
-                        checked={isPresent}
-                        onCheckedChange={() => toggleAttendance(event.id, seed.id)}
-                        aria-label="Marcar presença"
-                      />
+                    )
+                  })}
+                  {activeSeeds.length === 0 && (
+                    <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
+                      Nenhum Seed ativo para marcar presença.
                     </div>
-                  )
-                })}
-                {activeSeeds.length === 0 && (
-                  <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
-                    Nenhum seed ativo para marcar presença.
-                  </div>
-                )}
-              </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="team" className="space-y-3 mt-4">
+                  {teamMembers.map((member, i) => {
+                    const isPresent = attendances.some(
+                      (a) =>
+                        a.eventId === event.id &&
+                        a.participantId === member.id &&
+                        a.type === 'team' &&
+                        a.present,
+                    )
+                    return (
+                      <div
+                        key={member.id}
+                        className={`flex items-center justify-between p-3 rounded-lg border transition-colors animate-fade-in ${
+                          isPresent ? 'border-primary/50 bg-primary/5' : 'bg-card'
+                        }`}
+                        style={{ animationDelay: `${i * 30}ms` }}
+                      >
+                        <div>
+                          <p className="font-medium text-sm">{member.name}</p>
+                          <p className="text-xs text-muted-foreground">{member.role}</p>
+                        </div>
+                        <Switch
+                          checked={isPresent}
+                          onCheckedChange={() => toggleAttendance(event.id, member.id, 'team')}
+                          aria-label={`Marcar presença para o membro ${member.name}`}
+                        />
+                      </div>
+                    )
+                  })}
+                  {teamMembers.length === 0 && (
+                    <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
+                      Nenhum membro da equipe cadastrado.
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </div>

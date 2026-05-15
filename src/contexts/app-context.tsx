@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react'
+import { TeamMember } from '@/types/team'
 
 export type Seed = {
   id: string
@@ -32,7 +33,8 @@ export type Event = {
 
 export type Attendance = {
   eventId: string
-  seedId: string
+  participantId: string
+  type: 'seed' | 'team'
   present: boolean
 }
 
@@ -40,12 +42,15 @@ type AppContextType = {
   seeds: Seed[]
   events: Event[]
   attendances: Attendance[]
+  teamMembers: TeamMember[]
   addSeed: (
     seed: Omit<Seed, 'id' | 'registrationDate' | 'status'> & { status?: 'Ativo' | 'Inativo' },
   ) => void
   updateSeed: (id: string, seed: Partial<Seed>) => void
   addEvent: (event: Omit<Event, 'id'>) => void
-  toggleAttendance: (eventId: string, seedId: string) => void
+  toggleAttendance: (eventId: string, participantId: string, type: 'seed' | 'team') => void
+  addTeamMember: (member: Omit<TeamMember, 'id'>) => void
+  updateTeamMember: (id: string, member: Partial<TeamMember>) => void
 }
 
 const now = new Date()
@@ -81,7 +86,7 @@ const MOCK_SEEDS: Seed[] = [
     hasAllergy: false,
     hasMedication: true,
     medicationDetails: 'Ritalina',
-    status: 'Ativo', // will be overriden by computed age logic
+    status: 'Ativo',
     registrationDate: '2023-08-15',
   },
   {
@@ -147,32 +152,76 @@ const MOCK_SEEDS: Seed[] = [
 const MOCK_EVENTS: Event[] = [
   {
     id: '1',
-    title: 'Workshop de Liderança',
-    description: 'Desenvolvimento de habilidades de liderança e trabalho em equipe.',
+    title: 'Culto de Jovens',
+    description: 'Encontro focado no ensino da palavra e louvor.',
     date: '2024-05-10',
     time: '14:00',
     location: 'Auditório Principal',
-    category: 'Pedagógico',
+    category: 'Culto',
   },
   {
     id: '2',
-    title: 'Dinâmica de Grupo',
+    title: 'Hangout no Parque',
     description: 'Atividades interativas para fortalecimento do grupo.',
     date: '2024-05-18',
     time: '15:30',
-    location: 'Sala 3',
-    category: 'Social',
+    location: 'Parque da Cidade',
+    category: 'Hangout',
   },
 ]
 
 const MOCK_ATTENDANCES: Attendance[] = [
-  { eventId: '1', seedId: '1', present: true },
-  { eventId: '1', seedId: '2', present: true },
-  { eventId: '1', seedId: '3', present: false },
-  { eventId: '1', seedId: '4', present: false },
-  { eventId: '1', seedId: '5', present: true },
-  { eventId: '2', seedId: '1', present: true },
-  { eventId: '2', seedId: '3', present: true },
+  { eventId: '1', participantId: '1', type: 'seed', present: true },
+  { eventId: '1', participantId: '2', type: 'seed', present: true },
+  { eventId: '1', participantId: '3', type: 'seed', present: false },
+  { eventId: '1', participantId: '4', type: 'seed', present: false },
+  { eventId: '1', participantId: '5', type: 'seed', present: true },
+  { eventId: '2', participantId: '1', type: 'seed', present: true },
+  { eventId: '2', participantId: '3', type: 'seed', present: true },
+  { eventId: '1', participantId: '1', type: 'team', present: true },
+  { eventId: '1', participantId: '2', type: 'team', present: false },
+]
+
+const MOCK_TEAM_MEMBERS: TeamMember[] = [
+  {
+    id: '1',
+    name: 'Alvanice',
+    photoUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=female&seed=1',
+    email: 'alvanice@example.com',
+    dateOfBirth: '1985-05-12',
+    role: 'Líder',
+    courses: {
+      cme: { status: 'Completo', completionYear: '2020' },
+      ebm: { status: 'Em progresso' },
+      te: { status: 'Não feito' },
+    },
+  },
+  {
+    id: '2',
+    name: 'Amaury Silva',
+    photoUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=2',
+    email: 'amaury@example.com',
+    dateOfBirth: '1990-10-21',
+    role: 'Membro',
+    courses: {
+      cme: { status: 'Completo', completionYear: '2018' },
+      ebm: { status: 'Completo', completionYear: '2021' },
+      te: { status: 'Em progresso' },
+    },
+  },
+  {
+    id: '3',
+    name: 'Ana Carolina Dias',
+    photoUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=female&seed=3',
+    email: 'anacarol@example.com',
+    dateOfBirth: '1995-03-15',
+    role: 'Líder',
+    courses: {
+      cme: { status: 'Não feito' },
+      ebm: { status: 'Não feito' },
+      te: { status: 'Não feito' },
+    },
+  },
 ]
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
@@ -181,6 +230,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [baseSeeds, setBaseSeeds] = useState<Seed[]>(MOCK_SEEDS)
   const [events, setEvents] = useState<Event[]>(MOCK_EVENTS)
   const [attendances, setAttendances] = useState<Attendance[]>(MOCK_ATTENDANCES)
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(MOCK_TEAM_MEMBERS)
 
   const computedSeeds = useMemo(() => {
     return baseSeeds.map((seed) => {
@@ -226,15 +276,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setEvents([...events, newEvent])
   }
 
-  const toggleAttendance = (eventId: string, seedId: string) => {
+  const toggleAttendance = (eventId: string, participantId: string, type: 'seed' | 'team') => {
     setAttendances((prev) => {
-      const existing = prev.find((a) => a.eventId === eventId && a.seedId === seedId)
+      const existing = prev.find(
+        (a) => a.eventId === eventId && a.participantId === participantId && a.type === type,
+      )
       if (existing) {
         return prev.map((a) => (a === existing ? { ...a, present: !a.present } : a))
       } else {
-        return [...prev, { eventId, seedId, present: true }]
+        return [...prev, { eventId, participantId, type, present: true }]
       }
     })
+  }
+
+  const addTeamMember = (memberData: Omit<TeamMember, 'id'>) => {
+    const newMember: TeamMember = {
+      ...memberData,
+      id: Math.random().toString(36).substring(2, 9),
+    }
+    setTeamMembers([...teamMembers, newMember])
+  }
+
+  const updateTeamMember = (id: string, memberData: Partial<TeamMember>) => {
+    setTeamMembers(teamMembers.map((m) => (m.id === id ? { ...m, ...memberData } : m)))
   }
 
   return (
@@ -243,10 +307,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         seeds: computedSeeds,
         events,
         attendances,
+        teamMembers,
         addSeed,
         updateSeed,
         addEvent,
         toggleAttendance,
+        addTeamMember,
+        updateTeamMember,
       }}
     >
       {children}
