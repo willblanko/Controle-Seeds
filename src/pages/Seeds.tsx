@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react'
-import { Plus, Search, X } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 import { useApp, Seed } from '@/contexts/app-context'
+import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -95,9 +96,7 @@ export default function Seeds() {
   const [openNew, setOpenNew] = useState(false)
   const [selectedSeed, setSelectedSeed] = useState<Seed | null>(null)
 
-  const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [filterSex, setFilterSex] = useState<string>('all')
-  const [filterEntry, setFilterEntry] = useState<string>('all')
+  const [quickFilter, setQuickFilter] = useState<string>('all')
 
   const allAllergies = useMemo(
     () =>
@@ -144,19 +143,37 @@ export default function Seeds() {
       s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.guardian1.toLowerCase().includes(search.toLowerCase())
 
-    const matchStatus = filterStatus === 'all' || s.status === filterStatus
-    const matchSex = filterSex === 'all' || s.sex === filterSex
-    const matchEntry = filterEntry === 'all' || s.entryMethod === filterEntry
+    let matchFilter = true
+    switch (quickFilter) {
+      case 'active':
+        matchFilter = s.status === 'Ativo'
+        break
+      case 'inactive':
+        matchFilter = s.status === 'Inativo'
+        break
+      case 'boys':
+        matchFilter = s.sex === 'Masculino'
+        break
+      case 'girls':
+        matchFilter = s.sex === 'Feminino'
+        break
+      case 'kids4':
+        matchFilter = s.entryMethod === 'Kids 4'
+        break
+      case 'new_member':
+        matchFilter = s.entryMethod === 'Novo Membro'
+        break
+      case 'guest':
+        matchFilter = s.entryMethod === 'Convidado por Membro'
+        break
+      case 'all':
+      default:
+        matchFilter = true
+        break
+    }
 
-    return matchSearch && matchStatus && matchSex && matchEntry
+    return matchSearch && matchFilter
   })
-
-  const hasActiveFilters = filterStatus !== 'all' || filterSex !== 'all' || filterEntry !== 'all'
-  const clearFilters = () => {
-    setFilterStatus('all')
-    setFilterSex('all')
-    setFilterEntry('all')
-  }
 
   function onSubmit(data: z.infer<typeof seedSchema>) {
     const generatedPhoto = `https://img.usecurling.com/ppl/thumbnail?gender=${data.sex === 'Feminino' ? 'female' : 'male'}&seed=${Math.random().toString().substring(2, 6)}`
@@ -518,62 +535,41 @@ export default function Seeds() {
         </Sheet>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className="space-y-4">
+        <div className="relative w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome ou responsável..."
-            className="pl-8 bg-card"
+            placeholder="Buscar nome..."
+            className="pl-9 bg-card rounded-lg border-slate-200 shadow-sm h-11"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-full sm:w-[140px] bg-card">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os Status</SelectItem>
-              <SelectItem value="Ativo">Ativo</SelectItem>
-              <SelectItem value="Inativo">Inativo</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={filterSex} onValueChange={setFilterSex}>
-            <SelectTrigger className="w-full sm:w-[140px] bg-card">
-              <SelectValue placeholder="Sexo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos (Sexo)</SelectItem>
-              <SelectItem value="Masculino">Menino</SelectItem>
-              <SelectItem value="Feminino">Menina</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={filterEntry} onValueChange={setFilterEntry}>
-            <SelectTrigger className="w-full sm:w-[180px] bg-card">
-              <SelectValue placeholder="Forma de Ingresso" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as Formas</SelectItem>
-              <SelectItem value="Kids 4">Kids 4</SelectItem>
-              <SelectItem value="Novo Membro">Novo Membro</SelectItem>
-              <SelectItem value="Convidado por Membro">Convidado por Membro</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              onClick={clearFilters}
-              className="px-2 lg:px-3 text-muted-foreground hover:text-foreground shrink-0 w-full sm:w-auto"
+        <div className="flex overflow-x-auto gap-2 pb-2 -mb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {[
+            { id: 'all', label: 'Todos' },
+            { id: 'active', label: 'Ativos' },
+            { id: 'inactive', label: 'Inativos' },
+            { id: 'boys', label: 'Meninos' },
+            { id: 'girls', label: 'Meninas' },
+            { id: 'kids4', label: 'Kids 4' },
+            { id: 'new_member', label: 'Novo Membro' },
+            { id: 'guest', label: 'Convidado' },
+          ].map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setQuickFilter(f.id)}
+              className={cn(
+                'px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors border',
+                quickFilter === f.id
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                  : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-slate-700',
+              )}
             >
-              Limpar Filtros
-              <X className="ml-2 h-4 w-4" />
-            </Button>
-          )}
+              {f.label}
+            </button>
+          ))}
         </div>
       </div>
 
