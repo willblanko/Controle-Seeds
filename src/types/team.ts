@@ -12,6 +12,7 @@ export interface TeamMember {
   email: string
   dateOfBirth: string
   role: 'Líder' | 'Membro'
+  sex?: 'Masculino' | 'Feminino'
   courses: {
     cme: CourseData
     ebm: CourseData

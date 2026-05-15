@@ -190,6 +190,7 @@ const MOCK_TEAM_MEMBERS: TeamMember[] = [
     email: 'alvanice@example.com',
     dateOfBirth: '1985-05-12',
     role: 'Líder',
+    sex: 'Feminino',
     courses: {
       cme: { status: 'Completo', completionYear: '2020' },
       ebm: { status: 'Em progresso' },
@@ -203,6 +204,7 @@ const MOCK_TEAM_MEMBERS: TeamMember[] = [
     email: 'amaury@example.com',
     dateOfBirth: '1990-10-21',
     role: 'Membro',
+    sex: 'Masculino',
     courses: {
       cme: { status: 'Completo', completionYear: '2018' },
       ebm: { status: 'Completo', completionYear: '2021' },
@@ -216,6 +218,7 @@ const MOCK_TEAM_MEMBERS: TeamMember[] = [
     email: 'anacarol@example.com',
     dateOfBirth: '1995-03-15',
     role: 'Líder',
+    sex: 'Feminino',
     courses: {
       cme: { status: 'Não feito' },
       ebm: { status: 'Não feito' },

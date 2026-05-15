@@ -22,10 +22,17 @@ import { TeamMember } from '@/types/team'
 
 const courseSchema = z
   .object({
-    status: z.enum(['Em progresso', 'Completo', 'Não feito']),
+    status: z.enum(['Em progresso', 'Completo', 'Não feito', 'Selecione']),
     completionYear: z.string().optional(),
   })
   .superRefine((data, ctx) => {
+    if (data.status === 'Selecione') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Seleção obrigatória',
+        path: ['status'],
+      })
+    }
     if (data.status === 'Completo' && (!data.completionYear || data.completionYear.trim() === '')) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -37,10 +44,15 @@ const courseSchema = z
 
 const formSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
-  photoUrl: z.string().url('URL inválida').or(z.literal('')),
-  email: z.string().email('Email inválido').or(z.literal('')),
+  photoUrl: z.string().optional(),
+  email: z.string().min(1, 'Email é obrigatório').email('Email inválido'),
   dateOfBirth: z.string().min(1, 'Data de nascimento é obrigatória'),
-  role: z.enum(['Líder', 'Membro']),
+  role: z.enum(['Líder', 'Membro', 'Selecione']).refine((val) => val !== 'Selecione', {
+    message: 'Seleção obrigatória',
+  }),
+  sex: z.enum(['Masculino', 'Feminino', 'Selecione']).refine((val) => val !== 'Selecione', {
+    message: 'Seleção obrigatória',
+  }),
   courses: z.object({
     cme: courseSchema,
     ebm: courseSchema,
@@ -57,38 +69,59 @@ interface Props {
 }
 
 const COURSES = [
-  { key: 'cme', label: 'CME' },
-  { key: 'ebm', label: 'EBM' },
-  { key: 'te', label: 'TE' },
+  { key: 'cme', label: 'CME*' },
+  { key: 'ebm', label: 'EBM*' },
+  { key: 'te', label: 'TE*' },
 ] as const
 
 export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData || {
-      name: '',
-      photoUrl: '',
-      email: '',
-      dateOfBirth: '',
-      role: 'Membro',
+    defaultValues: {
+      name: initialData?.name || '',
+      photoUrl: initialData?.photoUrl || '',
+      email: initialData?.email || '',
+      dateOfBirth: initialData?.dateOfBirth || '',
+      role: initialData?.role || 'Selecione',
+      sex: initialData?.sex || 'Selecione',
       courses: {
-        cme: { status: 'Não feito', completionYear: '' },
-        ebm: { status: 'Não feito', completionYear: '' },
-        te: { status: 'Não feito', completionYear: '' },
+        cme: {
+          status: initialData?.courses?.cme?.status || 'Selecione',
+          completionYear: initialData?.courses?.cme?.completionYear || '',
+        },
+        ebm: {
+          status: initialData?.courses?.ebm?.status || 'Selecione',
+          completionYear: initialData?.courses?.ebm?.completionYear || '',
+        },
+        te: {
+          status: initialData?.courses?.te?.status || 'Selecione',
+          completionYear: initialData?.courses?.te?.completionYear || '',
+        },
       },
     },
   })
 
   const handleSubmit = (values: FormValues) => {
-    // Ensures completionYear is stored only when status is Completo
-    const cleanCourses = { ...values.courses }
+    const cleanCourses = { ...values.courses } as any
     COURSES.forEach(({ key }) => {
-      if (cleanCourses[key].status !== 'Completo') {
-        cleanCourses[key].completionYear = undefined
+      const k = key as 'cme' | 'ebm' | 'te'
+      if (cleanCourses[k].status !== 'Completo') {
+        cleanCourses[k].completionYear = undefined
       }
     })
-    onSubmit({ ...values, courses: cleanCourses })
+
+    onSubmit({
+      name: values.name,
+      photoUrl: values.photoUrl || '',
+      email: values.email,
+      dateOfBirth: values.dateOfBirth,
+      role: values.role as 'Líder' | 'Membro',
+      sex: values.sex as 'Masculino' | 'Feminino',
+      courses: cleanCourses,
+    })
   }
+
+  const currentPhoto = form.watch('photoUrl')
 
   return (
     <Form {...form}>
@@ -99,7 +132,7 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
             name="name"
             render={({ field }) => (
               <FormItem className="col-span-2">
-                <FormLabel>Nome</FormLabel>
+                <FormLabel>Nome Completo*</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
@@ -112,7 +145,7 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel>Email*</FormLabel>
                 <FormControl>
                   <Input type="email" {...field} />
                 </FormControl>
@@ -125,22 +158,9 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
             name="dateOfBirth"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Data Nasc.</FormLabel>
+                <FormLabel>Data de Nascimento*</FormLabel>
                 <FormControl>
                   <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="photoUrl"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Foto URL</FormLabel>
-                <FormControl>
-                  <Input {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -151,18 +171,73 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
             name="role"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Função</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormLabel>Função*</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="Selecione">Selecione</SelectItem>
                     <SelectItem value="Líder">Líder</SelectItem>
                     <SelectItem value="Membro">Membro</SelectItem>
                   </SelectContent>
                 </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="sex"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Sexo*</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Selecione">Selecione</SelectItem>
+                    <SelectItem value="Masculino">Masculino</SelectItem>
+                    <SelectItem value="Feminino">Feminino</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="photoUrl"
+            render={({ field }) => (
+              <FormItem className="col-span-2">
+                <FormLabel>Foto</FormLabel>
+                <div className="flex items-center gap-4">
+                  {currentPhoto && (
+                    <img
+                      src={currentPhoto}
+                      alt="Preview"
+                      className="w-10 h-10 rounded-full object-cover border"
+                    />
+                  )}
+                  <FormControl>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          const url = URL.createObjectURL(file)
+                          field.onChange(url)
+                        }
+                      }}
+                    />
+                  </FormControl>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
@@ -205,16 +280,17 @@ function CourseFieldRow({
         name={`courses.${courseKey}.status`}
         render={({ field }) => (
           <FormItem className="flex-1">
-            <FormLabel className="sr-only">{label} Status</FormLabel>
+            <FormLabel className="sr-only">{label}</FormLabel>
             <div className="flex items-center gap-2">
-              <span className="w-10 text-sm font-semibold">{label}</span>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <span className="w-12 text-sm font-semibold">{label}</span>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Status" />
+                    <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
+                  <SelectItem value="Selecione">Selecione</SelectItem>
                   <SelectItem value="Não feito">Não feito</SelectItem>
                   <SelectItem value="Em progresso">Em progresso</SelectItem>
                   <SelectItem value="Completo">Completo</SelectItem>
