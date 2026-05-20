@@ -50,7 +50,13 @@ export default function ManageUsers() {
   const [editingUser, setEditingUser] = useState<any | null>(null)
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
 
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'user' })
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'user',
+    status: 'Ativo',
+  })
   const [selectedChurches, setSelectedChurches] = useState<string[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -77,7 +83,7 @@ export default function ManageUsers() {
 
   const handleOpenCreate = () => {
     setEditingUser(null)
-    setFormData({ name: '', email: '', password: '', role: 'user' })
+    setFormData({ name: '', email: '', password: '', role: 'user', status: 'Ativo' })
     setSelectedChurches([])
     setErrors({})
     setOpen(true)
@@ -85,7 +91,13 @@ export default function ManageUsers() {
 
   const handleOpenEdit = (user: any) => {
     setEditingUser(user)
-    setFormData({ name: user.name, email: user.email, password: '', role: user.role || 'user' })
+    setFormData({
+      name: user.name,
+      email: user.email,
+      password: '',
+      role: user.role || 'user',
+      status: user.status || 'Ativo',
+    })
     setSelectedChurches(churchUsers.filter((cu) => cu.user === user.id).map((cu) => cu.church))
     setErrors({})
     setOpen(true)
@@ -108,6 +120,7 @@ export default function ManageUsers() {
           name: formData.name,
           email: formData.email,
           role: formData.role,
+          status: formData.status,
           emailVisibility: true,
         }
         if (formData.password) {
@@ -143,6 +156,7 @@ export default function ManageUsers() {
           password: formData.password,
           passwordConfirm: formData.password,
           role: formData.role,
+          status: formData.status,
           emailVisibility: true,
         })
 
@@ -197,6 +211,7 @@ export default function ManageUsers() {
               <TableHead>Nome</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Nível de Acesso</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Igrejas Associadas</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -220,6 +235,14 @@ export default function ManageUsers() {
                       className="uppercase text-[10px]"
                     >
                       {u.role}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={u.status === 'Inativo' ? 'secondary' : 'default'}
+                      className={`text-[10px] ${u.status === 'Inativo' ? 'bg-muted text-muted-foreground' : 'bg-green-100 text-green-800 hover:bg-green-100/80'}`}
+                    >
+                      {u.status || 'Ativo'}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -251,7 +274,7 @@ export default function ManageUsers() {
             })}
             {users.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   Nenhum usuário cadastrado.
                 </TableCell>
               </TableRow>
@@ -336,20 +359,38 @@ export default function ManageUsers() {
               {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Nível de Acesso</label>
-              <Select
-                value={formData.role}
-                onValueChange={(val) => setFormData({ ...formData, role: val })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o nível" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">Usuário Padrão</SelectItem>
-                  <SelectItem value="admin">Administrador Geral</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Nível de Acesso</label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(val) => setFormData({ ...formData, role: val })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o nível" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">Usuário Padrão</SelectItem>
+                    <SelectItem value="admin">Administrador Geral</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Status</label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(val) => setFormData({ ...formData, status: val })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Ativo">Ativo</SelectItem>
+                    <SelectItem value="Inativo">Inativo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {formData.role === 'user' && (

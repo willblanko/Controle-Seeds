@@ -184,12 +184,6 @@ export default function Seeds() {
 
     let matchFilter = true
     switch (quickFilter) {
-      case 'active':
-        matchFilter = s.status === 'Ativo'
-        break
-      case 'inactive':
-        matchFilter = s.status === 'Inativo'
-        break
       case 'boys':
         matchFilter = s.sex === 'Masculino'
         break
@@ -686,8 +680,6 @@ export default function Seeds() {
         <div className="flex overflow-x-auto gap-2 pb-2 -mb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {[
             { id: 'all', label: 'Todos' },
-            { id: 'active', label: 'Ativos' },
-            { id: 'inactive', label: 'Inativos' },
             { id: 'boys', label: 'Meninos' },
             { id: 'girls', label: 'Meninas' },
             { id: 'kids4', label: 'Kids 4' },
@@ -718,7 +710,6 @@ export default function Seeds() {
               <TableHead className="hidden md:table-cell">Idade</TableHead>
               <TableHead className="hidden md:table-cell">Ingresso</TableHead>
               <TableHead className="hidden sm:table-cell">Contato Principal</TableHead>
-              <TableHead>Status</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -757,14 +748,6 @@ export default function Seeds() {
                       <span className="text-xs text-muted-foreground">{seed.phone1}</span>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={seed.status === 'Ativo' ? 'default' : 'secondary'}
-                      className="font-normal"
-                    >
-                      {seed.status}
-                    </Badge>
-                  </TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" onClick={() => setSelectedSeed(seed)}>
                       Ver Perfil
@@ -800,9 +783,6 @@ export default function Seeds() {
                 <div className="flex flex-col gap-1">
                   <span className="font-medium text-xl">{selectedSeed.name}</span>
                   <div className="flex gap-2">
-                    <Badge variant={selectedSeed.status === 'Ativo' ? 'default' : 'secondary'}>
-                      {selectedSeed.status}
-                    </Badge>
                     <Badge variant="outline">{selectedSeed.entryMethod}</Badge>
                   </div>
                 </div>

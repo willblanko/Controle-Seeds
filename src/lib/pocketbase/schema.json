@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-20T19:15:57.841Z",
+  "generatedAt": "2026-05-20T19:19:50.304Z",
   "collections": [
     {
       "name": "users",
@@ -44,6 +44,13 @@
           "required": false,
           "system": false,
           "selectValues": ["admin", "user"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Ativo", "Inativo"]
         }
       ],
       "indexes": [
@@ -243,13 +250,6 @@
           "type": "text",
           "required": false,
           "system": false
-        },
-        {
-          "name": "status",
-          "type": "select",
-          "required": false,
-          "system": false,
-          "selectValues": ["Ativo", "Inativo"]
         },
         {
           "name": "registrationDate",
