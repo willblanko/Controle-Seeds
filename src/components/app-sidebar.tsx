@@ -1,6 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
 import {
-  Sprout,
   LayoutDashboard,
   Users,
   UserCircle,
@@ -28,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import logoImg from '@/assets/logoseedsgreen-bc966.png'
 
 const items = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
@@ -47,10 +47,9 @@ export function AppSidebar() {
       <SidebarHeader className="h-16 flex items-center justify-center px-4 border-b border-border/50 bg-background">
         <Link
           to="/"
-          className="flex items-center gap-2 font-bold text-xl text-primary transition-transform hover:scale-105 w-full"
+          className="flex items-center justify-center transition-transform hover:scale-105 w-full py-2"
         >
-          <Sprout className="h-6 w-6" />
-          <span>Seeds</span>
+          <img src={logoImg} alt="Seeds" className="h-8 w-auto" />
         </Link>
       </SidebarHeader>
       <SidebarContent>
