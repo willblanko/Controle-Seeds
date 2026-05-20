@@ -82,8 +82,8 @@ export default function Equipe() {
     })
   }, [teamMembers, search, filterRole])
 
-  const handleAddMember = (data: Omit<TeamMember, 'id'>) => {
-    addTeamMember(data)
+  const handleAddMember = async (data: Omit<TeamMember, 'id' | 'church'>) => {
+    await addTeamMember(data)
     setIsCreateOpen(false)
     toast({
       title: 'Membro adicionado',
@@ -91,9 +91,9 @@ export default function Equipe() {
     })
   }
 
-  const handleUpdateMember = (data: Omit<TeamMember, 'id'>) => {
+  const handleUpdateMember = async (data: Omit<TeamMember, 'id' | 'church'>) => {
     if (selectedMember) {
-      updateTeamMember(selectedMember.id, data)
+      await updateTeamMember(selectedMember.id, data)
       setIsEditMode(false)
       setSelectedMember({ ...data, id: selectedMember.id })
       toast({

@@ -228,13 +228,13 @@ export default function Seeds() {
     setOpenNew(true)
   }
 
-  function onSubmit(data: z.infer<typeof seedSchema>) {
+  async function onSubmit(data: z.infer<typeof seedSchema>) {
     if (sheetMode === 'create') {
       const generatedPhoto =
         data.photo ||
         `https://img.usecurling.com/ppl/thumbnail?gender=${data.sex === 'Feminino' ? 'female' : 'male'}&seed=${Math.random().toString().substring(2, 6)}`
 
-      addSeed({
+      await addSeed({
         name: data.name,
         photo: generatedPhoto,
         entryMethod: data.entryMethod,
@@ -255,7 +255,7 @@ export default function Seeds() {
         description: 'Seed cadastrado com sucesso!',
       })
     } else if (editingSeedId) {
-      updateSeed(editingSeedId, {
+      await updateSeed(editingSeedId, {
         name: data.name,
         ...(data.photo ? { photo: data.photo } : {}),
         entryMethod: data.entryMethod,

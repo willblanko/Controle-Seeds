@@ -30,10 +30,10 @@ export default function EventDetail() {
 
   const activeSeeds = seeds.filter((s) => s.status === 'Ativo')
   const presentSeedsCount = attendances.filter(
-    (a) => a.eventId === id && a.type === 'seed' && a.present,
+    (a) => a.event === id && a.type === 'seed' && a.present,
   ).length
   const presentTeamCount = attendances.filter(
-    (a) => a.eventId === id && a.type === 'team' && a.present,
+    (a) => a.event === id && a.type === 'team' && a.present,
   ).length
 
   const handleSaveNotes = () => {
@@ -103,8 +103,8 @@ export default function EventDetail() {
                   {activeSeeds.map((seed, i) => {
                     const isPresent = attendances.some(
                       (a) =>
-                        a.eventId === event.id &&
-                        a.participantId === seed.id &&
+                        a.event === event.id &&
+                        a.seed === seed.id &&
                         a.type === 'seed' &&
                         a.present,
                     )
@@ -139,8 +139,8 @@ export default function EventDetail() {
                   {teamMembers.map((member, i) => {
                     const isPresent = attendances.some(
                       (a) =>
-                        a.eventId === event.id &&
-                        a.participantId === member.id &&
+                        a.event === event.id &&
+                        a.team_member === member.id &&
                         a.type === 'team' &&
                         a.present,
                     )

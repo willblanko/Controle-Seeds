@@ -20,7 +20,7 @@ export default function Index() {
 
   const totalPossible = pastEvents.length * activeSeeds
   const actuallyPresent = attendances.filter(
-    (a) => a.present && a.type === 'seed' && pastEvents.find((e) => e.id === a.eventId),
+    (a) => a.present && a.type === 'seed' && pastEvents.find((e) => e.id === a.event),
   ).length
   const avgAttendance = totalPossible > 0 ? Math.round((actuallyPresent / totalPossible) * 100) : 0
 
@@ -149,7 +149,7 @@ export default function Index() {
                     <p className="text-4xl font-bold text-foreground">
                       {
                         attendances.filter(
-                          (a) => a.eventId === lastEvent.id && a.present && a.type === 'seed',
+                          (a) => a.event === lastEvent.id && a.present && a.type === 'seed',
                         ).length
                       }
                     </p>
@@ -159,7 +159,7 @@ export default function Index() {
                     <p className="text-4xl font-bold text-foreground">
                       {
                         attendances.filter(
-                          (a) => a.eventId === lastEvent.id && a.present && a.type === 'team',
+                          (a) => a.event === lastEvent.id && a.present && a.type === 'team',
                         ).length
                       }
                     </p>

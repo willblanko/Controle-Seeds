@@ -64,7 +64,7 @@ type FormValues = z.infer<typeof formSchema>
 
 interface Props {
   initialData?: TeamMember
-  onSubmit: (data: Omit<TeamMember, 'id'>) => void
+  onSubmit: (data: Omit<TeamMember, 'id' | 'church'>) => void
   onCancel: () => void
 }
 

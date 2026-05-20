@@ -1,13 +1,17 @@
-import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react'
-import { TeamMember } from '@/types/team'
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react'
+import pb from '@/lib/pocketbase/client'
+import { useChurch } from './church-context'
+import { useRealtime } from '@/hooks/use-realtime'
+import { CourseStatus } from '@/types/team'
 
 export type Seed = {
   id: string
+  church: string
   name: string
   photo?: string
   entryMethod: 'Kids 4' | 'Novo Membro' | 'Convidado por Membro'
   sex: 'Masculino' | 'Feminino' | 'Outro'
-  birthDate: string // YYYY-MM-DD
+  birthDate: string
   guardian1: string
   guardian2?: string
   phone1: string
@@ -23,19 +27,43 @@ export type Seed = {
 
 export type Event = {
   id: string
+  church: string
   title: string
   description: string
-  date: string // YYYY-MM-DD
-  time: string // HH:MM
+  date: string
+  time: string
   location: string
   category: string
 }
 
 export type Attendance = {
-  eventId: string
-  participantId: string
+  id: string
+  event: string
+  seed?: string
+  team_member?: string
   type: 'seed' | 'team'
   present: boolean
+}
+
+export interface CourseData {
+  status: CourseStatus
+  completionYear?: string
+}
+
+export type TeamMember = {
+  id: string
+  church: string
+  name: string
+  photoUrl: string
+  email: string
+  dateOfBirth: string
+  role: 'Líder' | 'Membro'
+  sex?: 'Masculino' | 'Feminino'
+  courses: {
+    cme: CourseData
+    ebm: CourseData
+    te: CourseData
+  }
 }
 
 type AppContextType = {
@@ -43,197 +71,69 @@ type AppContextType = {
   events: Event[]
   attendances: Attendance[]
   teamMembers: TeamMember[]
-  addSeed: (
-    seed: Omit<Seed, 'id' | 'registrationDate' | 'status'> & { status?: 'Ativo' | 'Inativo' },
-  ) => void
-  updateSeed: (id: string, seed: Partial<Seed>) => void
-  addEvent: (event: Omit<Event, 'id'>) => void
-  toggleAttendance: (eventId: string, participantId: string, type: 'seed' | 'team') => void
-  addTeamMember: (member: Omit<TeamMember, 'id'>) => void
-  updateTeamMember: (id: string, member: Partial<TeamMember>) => void
+  addSeed: (seed: Omit<Seed, 'id' | 'church' | 'registrationDate'>) => Promise<void>
+  updateSeed: (id: string, seed: Partial<Seed>) => Promise<void>
+  addEvent: (event: Omit<Event, 'id' | 'church'>) => Promise<void>
+  toggleAttendance: (eventId: string, participantId: string, type: 'seed' | 'team') => Promise<void>
+  addTeamMember: (member: Omit<TeamMember, 'id' | 'church'>) => Promise<void>
+  updateTeamMember: (id: string, member: Partial<TeamMember>) => Promise<void>
 }
-
-const now = new Date()
-const turning14In30Days = new Date(now.getFullYear() - 14, now.getMonth(), now.getDate() + 30)
-const turned14Recently = new Date(now.getFullYear() - 14, now.getMonth(), now.getDate() - 10)
-const birthdayThisMonth = new Date(now.getFullYear() - 10, now.getMonth(), 15)
-
-const MOCK_SEEDS: Seed[] = [
-  {
-    id: '1',
-    name: 'Ana Silva',
-    photo: 'https://img.usecurling.com/ppl/thumbnail?gender=female&seed=1',
-    entryMethod: 'Kids 4',
-    sex: 'Feminino',
-    birthDate: '2015-04-12',
-    guardian1: 'Maria Silva',
-    phone1: '(11) 98765-4321',
-    hasAllergy: true,
-    allergyDetails: 'Amendoim',
-    hasMedication: false,
-    status: 'Ativo',
-    registrationDate: '2023-08-01',
-  },
-  {
-    id: '2',
-    name: 'Bruno Costa',
-    photo: 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=2',
-    entryMethod: 'Novo Membro',
-    sex: 'Masculino',
-    birthDate: turned14Recently.toISOString().split('T')[0],
-    guardian1: 'João Costa',
-    phone1: '(11) 91234-5678',
-    hasAllergy: false,
-    hasMedication: true,
-    medicationDetails: 'Ritalina',
-    status: 'Ativo',
-    registrationDate: '2023-08-15',
-  },
-  {
-    id: '3',
-    name: 'Carla Dias',
-    photo: 'https://img.usecurling.com/ppl/thumbnail?gender=female&seed=3',
-    entryMethod: 'Convidado por Membro',
-    sex: 'Feminino',
-    birthDate: turning14In30Days.toISOString().split('T')[0],
-    guardian1: 'Roberto Dias',
-    phone1: '(11) 99988-7766',
-    hasAllergy: false,
-    hasMedication: false,
-    status: 'Ativo',
-    registrationDate: '2023-09-10',
-  },
-  {
-    id: '4',
-    name: 'Diego Martins',
-    photo: 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=4',
-    entryMethod: 'Novo Membro',
-    sex: 'Masculino',
-    birthDate: '2013-08-30',
-    guardian1: 'Patrícia Martins',
-    phone1: '(11) 97766-5544',
-    hasAllergy: true,
-    allergyDetails: 'Poeira',
-    hasMedication: false,
-    status: 'Inativo',
-    registrationDate: '2023-07-22',
-  },
-  {
-    id: '5',
-    name: 'Elena Rocha',
-    photo: 'https://img.usecurling.com/ppl/thumbnail?gender=female&seed=5',
-    entryMethod: 'Kids 4',
-    sex: 'Feminino',
-    birthDate: '2016-01-18',
-    guardian1: 'Carlos Rocha',
-    phone1: '(11) 95544-3322',
-    hasAllergy: false,
-    hasMedication: true,
-    medicationDetails: 'Bombinha de Asma',
-    status: 'Ativo',
-    registrationDate: '2023-10-05',
-  },
-  {
-    id: '6',
-    name: 'Felipe Santos',
-    photo: 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=6',
-    entryMethod: 'Novo Membro',
-    sex: 'Masculino',
-    birthDate: birthdayThisMonth.toISOString().split('T')[0],
-    guardian1: 'Carlos Santos',
-    phone1: '(11) 95544-1122',
-    hasAllergy: false,
-    hasMedication: false,
-    status: 'Ativo',
-    registrationDate: '2023-11-20',
-  },
-]
-
-const MOCK_EVENTS: Event[] = [
-  {
-    id: '1',
-    title: 'Culto de Jovens',
-    description: 'Encontro focado no ensino da palavra e louvor.',
-    date: '2024-05-10',
-    time: '14:00',
-    location: 'Auditório Principal',
-    category: 'Culto',
-  },
-  {
-    id: '2',
-    title: 'Hangout no Parque',
-    description: 'Atividades interativas para fortalecimento do grupo.',
-    date: '2024-05-18',
-    time: '15:30',
-    location: 'Parque da Cidade',
-    category: 'Hangout',
-  },
-]
-
-const MOCK_ATTENDANCES: Attendance[] = [
-  { eventId: '1', participantId: '1', type: 'seed', present: true },
-  { eventId: '1', participantId: '2', type: 'seed', present: true },
-  { eventId: '1', participantId: '3', type: 'seed', present: false },
-  { eventId: '1', participantId: '4', type: 'seed', present: false },
-  { eventId: '1', participantId: '5', type: 'seed', present: true },
-  { eventId: '2', participantId: '1', type: 'seed', present: true },
-  { eventId: '2', participantId: '3', type: 'seed', present: true },
-  { eventId: '1', participantId: '1', type: 'team', present: true },
-  { eventId: '1', participantId: '2', type: 'team', present: false },
-]
-
-const MOCK_TEAM_MEMBERS: TeamMember[] = [
-  {
-    id: '1',
-    name: 'Alvanice',
-    photoUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=female&seed=1',
-    email: 'alvanice@example.com',
-    dateOfBirth: '1985-05-12',
-    role: 'Líder',
-    sex: 'Feminino',
-    courses: {
-      cme: { status: 'Completo', completionYear: '2020' },
-      ebm: { status: 'Em progresso' },
-      te: { status: 'Não feito' },
-    },
-  },
-  {
-    id: '2',
-    name: 'Amaury Silva',
-    photoUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=male&seed=2',
-    email: 'amaury@example.com',
-    dateOfBirth: '1990-10-21',
-    role: 'Membro',
-    sex: 'Masculino',
-    courses: {
-      cme: { status: 'Completo', completionYear: '2018' },
-      ebm: { status: 'Completo', completionYear: '2021' },
-      te: { status: 'Em progresso' },
-    },
-  },
-  {
-    id: '3',
-    name: 'Ana Carolina Dias',
-    photoUrl: 'https://img.usecurling.com/ppl/thumbnail?gender=female&seed=3',
-    email: 'anacarol@example.com',
-    dateOfBirth: '1995-03-15',
-    role: 'Líder',
-    sex: 'Feminino',
-    courses: {
-      cme: { status: 'Não feito' },
-      ebm: { status: 'Não feito' },
-      te: { status: 'Não feito' },
-    },
-  },
-]
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [baseSeeds, setBaseSeeds] = useState<Seed[]>(MOCK_SEEDS)
-  const [events, setEvents] = useState<Event[]>(MOCK_EVENTS)
-  const [attendances, setAttendances] = useState<Attendance[]>(MOCK_ATTENDANCES)
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(MOCK_TEAM_MEMBERS)
+  const { currentChurch } = useChurch()
+
+  const [baseSeeds, setBaseSeeds] = useState<Seed[]>([])
+  const [events, setEvents] = useState<Event[]>([])
+  const [attendances, setAttendances] = useState<Attendance[]>([])
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+
+  const loadData = async () => {
+    if (!currentChurch) return
+    const filter = `church = "${currentChurch.id}"`
+    try {
+      const [s, e, tm] = await Promise.all([
+        pb.collection('seeds').getFullList<Seed>({ filter }),
+        pb.collection('events').getFullList<Event>({ filter }),
+        pb.collection('team_members').getFullList<TeamMember>({ filter }),
+      ])
+      setBaseSeeds(s)
+      setEvents(e)
+      setTeamMembers(tm)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const loadAttendances = async () => {
+    if (!currentChurch) return
+    try {
+      const atts = await pb.collection('attendances').getFullList<Attendance>({
+        filter: `event.church = "${currentChurch.id}"`,
+      })
+      setAttendances(atts)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+    loadAttendances()
+  }, [currentChurch?.id])
+
+  useRealtime('seeds', () => loadData(), !!currentChurch)
+  useRealtime(
+    'events',
+    () => {
+      loadData()
+      loadAttendances()
+    },
+    !!currentChurch,
+  )
+  useRealtime('team_members', () => loadData(), !!currentChurch)
+  useRealtime('attendances', () => loadAttendances(), !!currentChurch)
 
   const computedSeeds = useMemo(() => {
     return baseSeeds.map((seed) => {
@@ -255,53 +155,63 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })
   }, [baseSeeds])
 
-  const addSeed = (
-    seedData: Omit<Seed, 'id' | 'registrationDate' | 'status'> & { status?: 'Ativo' | 'Inativo' },
-  ) => {
-    const newSeed: Seed = {
+  const addSeed = async (seedData: Omit<Seed, 'id' | 'church' | 'registrationDate'>) => {
+    if (!currentChurch) return
+    const now = new Date().toISOString().split('T')[0]
+    await pb.collection('seeds').create({
       ...seedData,
-      id: Math.random().toString(36).substring(2, 9),
+      church: currentChurch.id,
+      registrationDate: now,
       status: seedData.status || 'Ativo',
-      registrationDate: new Date().toISOString().split('T')[0],
-    }
-    setBaseSeeds([...baseSeeds, newSeed])
-  }
-
-  const updateSeed = (id: string, seedData: Partial<Seed>) => {
-    setBaseSeeds(baseSeeds.map((s) => (s.id === id ? { ...s, ...seedData } : s)))
-  }
-
-  const addEvent = (eventData: Omit<Event, 'id'>) => {
-    const newEvent: Event = {
-      ...eventData,
-      id: Math.random().toString(36).substring(2, 9),
-    }
-    setEvents([...events, newEvent])
-  }
-
-  const toggleAttendance = (eventId: string, participantId: string, type: 'seed' | 'team') => {
-    setAttendances((prev) => {
-      const existing = prev.find(
-        (a) => a.eventId === eventId && a.participantId === participantId && a.type === type,
-      )
-      if (existing) {
-        return prev.map((a) => (a === existing ? { ...a, present: !a.present } : a))
-      } else {
-        return [...prev, { eventId, participantId, type, present: true }]
-      }
     })
   }
 
-  const addTeamMember = (memberData: Omit<TeamMember, 'id'>) => {
-    const newMember: TeamMember = {
-      ...memberData,
-      id: Math.random().toString(36).substring(2, 9),
-    }
-    setTeamMembers([...teamMembers, newMember])
+  const updateSeed = async (id: string, seedData: Partial<Seed>) => {
+    await pb.collection('seeds').update(id, seedData)
   }
 
-  const updateTeamMember = (id: string, memberData: Partial<TeamMember>) => {
-    setTeamMembers(teamMembers.map((m) => (m.id === id ? { ...m, ...memberData } : m)))
+  const addEvent = async (eventData: Omit<Event, 'id' | 'church'>) => {
+    if (!currentChurch) return
+    await pb.collection('events').create({
+      ...eventData,
+      church: currentChurch.id,
+    })
+  }
+
+  const toggleAttendance = async (
+    eventId: string,
+    participantId: string,
+    type: 'seed' | 'team',
+  ) => {
+    const existing = attendances.find(
+      (a) =>
+        a.event === eventId &&
+        (type === 'seed' ? a.seed === participantId : a.team_member === participantId) &&
+        a.type === type,
+    )
+    if (existing) {
+      await pb.collection('attendances').update(existing.id, { present: !existing.present })
+    } else {
+      await pb.collection('attendances').create({
+        event: eventId,
+        seed: type === 'seed' ? participantId : null,
+        team_member: type === 'team' ? participantId : null,
+        type,
+        present: true,
+      })
+    }
+  }
+
+  const addTeamMember = async (memberData: Omit<TeamMember, 'id' | 'church'>) => {
+    if (!currentChurch) return
+    await pb.collection('team_members').create({
+      ...memberData,
+      church: currentChurch.id,
+    })
+  }
+
+  const updateTeamMember = async (id: string, memberData: Partial<TeamMember>) => {
+    await pb.collection('team_members').update(id, memberData)
   }
 
   return (

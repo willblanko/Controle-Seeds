@@ -1,5 +1,14 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Sprout, LayoutDashboard, Users, UserCircle, Calendar, Settings } from 'lucide-react'
+import {
+  Sprout,
+  LayoutDashboard,
+  Users,
+  UserCircle,
+  Calendar,
+  LineChart,
+  Church,
+} from 'lucide-react'
+import { useAuth } from '@/hooks/use-auth'
 import {
   Sidebar,
   SidebarContent,
@@ -16,10 +25,12 @@ const items = [
   { title: 'Seeds', url: '/seeds', icon: Users },
   { title: 'Equipe', url: '/equipe', icon: UserCircle },
   { title: 'Eventos', url: '/eventos', icon: Calendar },
+  { title: 'Presença', url: '/dashboard-presenca', icon: LineChart },
 ]
 
 export function AppSidebar() {
   const location = useLocation()
+  const { user } = useAuth()
 
   return (
     <Sidebar>
@@ -51,6 +62,20 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 )
               })}
+              {user?.role === 'admin' && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname.startsWith('/admin/churches')}
+                    tooltip="Igrejas"
+                  >
+                    <Link to="/admin/churches">
+                      <Church />
+                      <span>Igrejas</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

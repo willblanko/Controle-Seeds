@@ -70,8 +70,8 @@ export default function Events() {
     },
   })
 
-  function onSubmit(data: z.infer<typeof eventSchema>) {
-    addEvent(data)
+  async function onSubmit(data: z.infer<typeof eventSchema>) {
+    await addEvent(data)
     setOpenNew(false)
     form.reset()
     toast({
