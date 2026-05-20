@@ -1,6 +1,16 @@
-import { useState, useEffect } from 'react'
-import { Users, Calendar, Church, Activity, ArrowRight, UserPlus, CalendarDays } from 'lucide-react'
-import { useApp } from '@/contexts/app-context'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import {
+  Users,
+  Calendar,
+  Church,
+  Activity,
+  ArrowRight,
+  UserPlus,
+  CalendarDays,
+  TrendingUp,
+  CheckCircle,
+  BarChart3,
+} from 'lucide-react'
 import { useChurch } from '@/contexts/church-context'
 import { useRealtime } from '@/hooks/use-realtime'
 import pb from '@/lib/pocketbase/client'
@@ -9,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -17,100 +28,286 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { Bar, BarChart, CartesianGrid, XAxis, Area, AreaChart } from 'recharts'
 
 export function GlobalDashboard() {
-  const { seeds, events } = useApp()
   const { availableChurches, setCurrentChurch } = useChurch()
+  const [seeds, setSeeds] = useState<any[]>([])
   const [teamMembers, setTeamMembers] = useState<any[]>([])
+  const [events, setEvents] = useState<any[]>([])
+  const [attendances, setAttendances] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const fetchTeamMembers = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const records = await pb.collection('team_members').getFullList()
-      setTeamMembers(records)
+      const [fetchedSeeds, fetchedTeam, fetchedEvents, fetchedAttendances] = await Promise.all([
+        pb.collection('seeds').getFullList(),
+        pb.collection('team_members').getFullList(),
+        pb.collection('events').getFullList(),
+        pb.collection('attendances').getFullList(),
+      ])
+      setSeeds(fetchedSeeds)
+      setTeamMembers(fetchedTeam)
+      setEvents(fetchedEvents)
+      setAttendances(fetchedAttendances)
     } catch (e) {
       console.error(e)
+    } finally {
+      setLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchTeamMembers()
   }, [])
 
-  useRealtime('team_members', () => {
-    fetchTeamMembers()
-  })
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
-  const churchStats = availableChurches
-    .map((church) => {
-      const churchSeeds = seeds.filter((s) => s.church === church.id && s.status === 'Ativo').length
-      const churchTeam = teamMembers.filter((t) => t.church === church.id).length
-      return { ...church, activeSeeds: churchSeeds, teamCount: churchTeam }
+  useRealtime('seeds', loadData)
+  useRealtime('team_members', loadData)
+  useRealtime('events', loadData)
+  useRealtime('attendances', loadData)
+
+  const nowString = useMemo(() => new Date().toISOString().split('T')[0], [])
+
+  // Global Metrics
+  const activeSeeds = useMemo(() => seeds.filter((s) => s.status === 'Ativo').length, [seeds])
+  const totalTeam = teamMembers.length
+  const activeEvents = useMemo(
+    () => events.filter((e) => e.date >= nowString).length,
+    [events, nowString],
+  )
+  const totalPresent = useMemo(() => attendances.filter((a) => a.present).length, [attendances])
+
+  // Charts Data
+  const attendanceData = useMemo(() => {
+    const pastEvents = [...events]
+      .filter((e) => e.date < nowString)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-10)
+
+    return pastEvents.map((event) => {
+      const eventAttendances = attendances.filter((a) => a.event === event.id && a.present)
+      return {
+        name: event.title,
+        date: new Date(event.date + 'T12:00:00').toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: 'short',
+        }),
+        presentes: eventAttendances.length,
+      }
     })
-    .sort((a, b) => b.activeSeeds - a.activeSeeds)
+  }, [events, attendances, nowString])
 
-  const recentSeeds = [...seeds]
-    .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
-    .slice(0, 5)
+  const growthData = useMemo(() => {
+    const months = {} as Record<string, number>
+    const activeSeedsList = seeds.filter((s) => s.status === 'Ativo')
+    const sorted = [...activeSeedsList].sort(
+      (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime(),
+    )
 
-  const nowString = new Date().toISOString().split('T')[0]
-  const upcomingEvents = [...events]
-    .filter((e) => e.date >= nowString)
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 5)
+    sorted.forEach((seed) => {
+      const d = new Date(seed.created)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      months[key] = (months[key] || 0) + 1
+    })
 
-  const getChurchName = (id: string) =>
-    availableChurches.find((c) => c.id === id)?.name || 'Desconhecida'
+    let acc = 0
+    return Object.entries(months)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, count]) => {
+        acc += count
+        const [y, m] = key.split('-')
+        return {
+          month: `${m}/${y.slice(2)}`,
+          total: acc,
+        }
+      })
+  }, [seeds])
+
+  const churchStats = useMemo(() => {
+    return availableChurches
+      .map((church) => {
+        const churchSeeds = seeds.filter(
+          (s) => s.church === church.id && s.status === 'Ativo',
+        ).length
+        const churchTeam = teamMembers.filter((t) => t.church === church.id).length
+        return { ...church, activeSeeds: churchSeeds, teamCount: churchTeam }
+      })
+      .sort((a, b) => b.activeSeeds - a.activeSeeds)
+  }, [availableChurches, seeds, teamMembers])
+
+  const recentSeeds = useMemo(
+    () =>
+      [...seeds]
+        .sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
+        .slice(0, 5),
+    [seeds],
+  )
+
+  const upcomingEvents = useMemo(
+    () =>
+      [...events]
+        .filter((e) => e.date >= nowString)
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(0, 5),
+    [events, nowString],
+  )
+
+  const getChurchName = useCallback(
+    (id: string) => availableChurches.find((c) => c.id === id)?.name || 'Desconhecida',
+    [availableChurches],
+  )
+
+  const chartConfigFrequency = {
+    presentes: { label: 'Presenças', color: 'hsl(var(--primary))' },
+  }
+
+  const chartConfigGrowth = {
+    total: { label: 'Total Ativos', color: 'hsl(var(--primary))' },
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <Skeleton className="h-10 w-64" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      </div>
+    )
+  }
+
+  const hasData = seeds.length > 0 || teamMembers.length > 0 || events.length > 0
+
+  if (!hasData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 animate-fade-in">
+        <div className="h-20 w-20 bg-muted/50 rounded-full flex items-center justify-center mb-2">
+          <Activity className="h-10 w-10 text-muted-foreground/60" />
+        </div>
+        <h2 className="text-2xl font-bold tracking-tight">Nenhum dado disponível</h2>
+        <p className="text-muted-foreground text-center max-w-sm">
+          O painel global agregará informações de todas as igrejas assim que existirem registros no
+          sistema.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Visão Global</h2>
-          <p className="text-muted-foreground">Métricas e acompanhamento de todas as igrejas.</p>
+          <p className="text-muted-foreground">Métricas e acompanhamento de toda a organização.</p>
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="hover:shadow-md transition-shadow">
+        <Card className="hover:shadow-md transition-shadow bg-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Seeds</CardTitle>
+            <CardTitle className="text-sm font-medium">Seeds Ativos</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{seeds.length}</div>
+            <div className="text-2xl font-bold">{activeSeeds}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Sendo {seeds.filter((s) => s.status === 'Ativo').length} ativos
+              De um total de {seeds.length} cadastrados
             </p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Equipe Total</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <UserPlus className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{teamMembers.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Voluntários e líderes</p>
+            <div className="text-2xl font-bold">{totalTeam}</div>
+            <p className="text-xs text-muted-foreground mt-1">Voluntários e líderes da rede</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Eventos</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Eventos Ativos</CardTitle>
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{events.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Eventos registrados</p>
+            <div className="text-2xl font-bold">{activeEvents}</div>
+            <p className="text-xs text-muted-foreground mt-1">Agendados futuramente</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Igrejas</CardTitle>
-            <Church className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total de Presenças</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{availableChurches.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Unidades ativas</p>
+            <div className="text-2xl font-bold">{totalPresent}</div>
+            <p className="text-xs text-muted-foreground mt-1">Registros consolidados</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              Frequência em Eventos
+            </CardTitle>
+            <CardDescription>Presença consolidada nos últimos 10 eventos.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {attendanceData.length > 0 ? (
+              <ChartContainer config={chartConfigFrequency} className="h-[250px] w-full">
+                <BarChart accessibilityLayer data={attendanceData}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                  <Bar dataKey="presentes" fill="var(--color-presentes)" radius={4} />
+                </BarChart>
+              </ChartContainer>
+            ) : (
+              <div className="flex h-[250px] items-center justify-center text-sm text-muted-foreground">
+                Nenhum evento passado encontrado.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Crescimento de Seeds
+            </CardTitle>
+            <CardDescription>Evolução acumulada de Seeds ativos ao longo do tempo.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {growthData.length > 0 ? (
+              <ChartContainer config={chartConfigGrowth} className="h-[250px] w-full">
+                <AreaChart accessibilityLayer data={growthData}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                  <Area
+                    type="linear"
+                    dataKey="total"
+                    fill="var(--color-total)"
+                    fillOpacity={0.2}
+                    stroke="var(--color-total)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ChartContainer>
+            ) : (
+              <div className="flex h-[250px] items-center justify-center text-sm text-muted-foreground">
+                Não há dados suficientes para o gráfico.
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -153,7 +350,7 @@ export function GlobalDashboard() {
                   {churchStats.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
-                        Nenhuma igreja encontrada.
+                        Nenhuma igreja cadastrada.
                       </TableCell>
                     </TableRow>
                   )}
