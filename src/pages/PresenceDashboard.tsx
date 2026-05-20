@@ -102,7 +102,7 @@ export default function PresenceDashboard() {
                 seeds: { label: 'Seeds', color: 'hsl(var(--primary))' },
                 team: { label: 'Equipe', color: 'hsl(var(--chart-2))' },
               }}
-              className="h-[400px] w-full"
+              className="h-[400px] w-full min-w-0"
             >
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />

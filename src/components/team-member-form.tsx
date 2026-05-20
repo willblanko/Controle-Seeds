@@ -126,12 +126,12 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
-              <FormItem className="col-span-2">
+              <FormItem className="sm:col-span-2">
                 <FormLabel>Nome Completo*</FormLabel>
                 <FormControl>
                   <Input {...field} />
@@ -214,7 +214,7 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
             control={form.control}
             name="photoUrl"
             render={({ field }) => (
-              <FormItem className="col-span-2">
+              <FormItem className="sm:col-span-2">
                 <FormLabel>Foto</FormLabel>
                 <div className="flex items-center gap-4">
                   {currentPhoto && (
@@ -274,15 +274,15 @@ function CourseFieldRow({
   const status = useWatch({ control: form.control, name: `courses.${courseKey}.status` })
 
   return (
-    <div className="flex gap-4 items-start">
+    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center w-full">
       <FormField
         control={form.control}
         name={`courses.${courseKey}.status`}
         render={({ field }) => (
-          <FormItem className="flex-1">
+          <FormItem className="w-full sm:flex-1">
             <FormLabel className="sr-only">{label}</FormLabel>
-            <div className="flex items-center gap-2">
-              <span className="w-12 text-sm font-semibold">{label}</span>
+            <div className="flex items-center gap-2 w-full">
+              <span className="w-12 shrink-0 text-sm font-semibold">{label}</span>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -306,7 +306,8 @@ function CourseFieldRow({
           control={form.control}
           name={`courses.${courseKey}.completionYear`}
           render={({ field }) => (
-            <FormItem className="w-32 animate-fade-in">
+            <FormItem className="w-full sm:w-32 animate-fade-in">
+              {' '}
               <FormControl>
                 <Input placeholder="Ano..." {...field} value={field.value || ''} />
               </FormControl>

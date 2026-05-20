@@ -49,7 +49,7 @@ export function AppSidebar() {
           to="/"
           className="flex items-center justify-center transition-transform hover:scale-105 w-full py-2"
         >
-          <img src={logoImg} alt="Seeds" className="h-8 w-auto" />
+          <img src={logoImg} alt="Brand Logo" className="h-8 w-auto" />
         </Link>
       </SidebarHeader>
       <SidebarContent>

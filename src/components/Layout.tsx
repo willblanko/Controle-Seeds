@@ -49,7 +49,7 @@ export default function Layout() {
             <LogOut className="mr-2 h-4 w-4" /> Sair
           </Button>
         </div>
-        <main className="flex-1 bg-background p-4 md:p-8 overflow-y-auto">
+        <main className="flex-1 bg-background p-4 md:p-8 overflow-y-auto overflow-x-hidden max-w-full">
           <div className="mx-auto w-full max-w-6xl animate-fade-in">
             <Outlet />
           </div>

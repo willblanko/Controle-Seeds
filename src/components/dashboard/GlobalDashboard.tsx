@@ -262,7 +262,7 @@ export function GlobalDashboard() {
           </CardHeader>
           <CardContent>
             {attendanceData.length > 0 ? (
-              <ChartContainer config={chartConfigFrequency} className="h-[250px] w-full">
+              <ChartContainer config={chartConfigFrequency} className="h-[250px] w-full min-w-0">
                 <BarChart accessibilityLayer data={attendanceData}>
                   <CartesianGrid vertical={false} />
                   <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} />
@@ -288,7 +288,7 @@ export function GlobalDashboard() {
           </CardHeader>
           <CardContent>
             {growthData.length > 0 ? (
-              <ChartContainer config={chartConfigGrowth} className="h-[250px] w-full">
+              <ChartContainer config={chartConfigGrowth} className="h-[250px] w-full min-w-0">
                 <AreaChart accessibilityLayer data={growthData}>
                   <CartesianGrid vertical={false} />
                   <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
