@@ -709,6 +709,7 @@ export default function Seeds() {
               <TableHead>Nome</TableHead>
               <TableHead className="hidden md:table-cell">Idade</TableHead>
               <TableHead className="hidden md:table-cell">Ingresso</TableHead>
+              <TableHead className="hidden md:table-cell">Igreja</TableHead>
               <TableHead className="hidden sm:table-cell">Contato Principal</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -721,40 +722,46 @@ export default function Seeds() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredSeeds.map((seed, i) => (
-                <TableRow
-                  key={seed.id}
-                  className="animate-fade-in"
-                  style={{ animationDelay: `${i * 50}ms` }}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8 hidden sm:block">
-                        <AvatarImage src={seed.photo} />
-                        <AvatarFallback>{seed.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <span className="font-medium">{seed.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-muted-foreground">
-                    {calculateAge(seed.birthDate)}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-muted-foreground">
-                    {seed.entryMethod}
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    <div className="flex flex-col">
-                      <span className="text-sm">{seed.guardian1}</span>
-                      <span className="text-xs text-muted-foreground">{seed.phone1}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedSeed(seed)}>
-                      Ver Perfil
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
+              filteredSeeds.map((seed, i) => {
+                const church = churches.find((c) => c.id === seed.church)
+                return (
+                  <TableRow
+                    key={seed.id}
+                    className="animate-fade-in"
+                    style={{ animationDelay: `${i * 50}ms` }}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8 hidden sm:block">
+                          <AvatarImage src={seed.photo} />
+                          <AvatarFallback>{seed.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium">{seed.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-muted-foreground">
+                      {calculateAge(seed.birthDate)}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-muted-foreground">
+                      {seed.entryMethod}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-muted-foreground">
+                      {church?.name || '-'}
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <div className="flex flex-col">
+                        <span className="text-sm">{seed.guardian1}</span>
+                        <span className="text-xs text-muted-foreground">{seed.phone1}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" onClick={() => setSelectedSeed(seed)}>
+                        Ver Perfil
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                )
+              })
             )}
           </TableBody>
         </Table>
@@ -789,6 +796,12 @@ export default function Seeds() {
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="col-span-2 flex flex-col gap-1">
+                  <span className="text-muted-foreground">Igreja</span>
+                  <span className="font-medium">
+                    {churches.find((c) => c.id === selectedSeed.church)?.name || '-'}
+                  </span>
+                </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-muted-foreground">Responsável 1</span>
                   <span className="font-medium">
