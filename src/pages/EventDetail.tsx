@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, MapPin, Clock, CalendarDays } from 'lucide-react'
 
 import { useApp } from '@/contexts/app-context'
+import { useChurch } from '@/contexts/church-context'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
@@ -13,6 +14,7 @@ import { useToast } from '@/hooks/use-toast'
 export default function EventDetail() {
   const { id } = useParams()
   const { events, seeds, teamMembers, attendances, toggleAttendance } = useApp()
+  const { availableChurches } = useChurch()
   const { toast } = useToast()
 
   const event = events.find((e) => e.id === id)
@@ -28,7 +30,15 @@ export default function EventDetail() {
     )
   }
 
-  const activeSeeds = seeds.filter((s) => s.status === 'Ativo')
+  const validChurchIds = [event.church].filter(Boolean) as string[]
+  const guestIds = availableChurches
+    .filter((c) => (c as any).event_host === event.church)
+    .map((c) => c.id)
+  validChurchIds.push(...guestIds)
+
+  const activeSeeds = seeds.filter((s) => s.status === 'Ativo' && validChurchIds.includes(s.church))
+  const eventTeamMembers = teamMembers.filter((m) => validChurchIds.includes(m.church))
+
   const presentSeedsCount = attendances.filter(
     (a) => a.event === id && a.type === 'seed' && a.present,
   ).length
@@ -94,7 +104,7 @@ export default function EventDetail() {
                   <TabsTrigger value="team" className="gap-2">
                     Equipe{' '}
                     <Badge variant="secondary" className="ml-1 rounded-full">
-                      {presentTeamCount}/{teamMembers.length}
+                      {presentTeamCount}/{eventTeamMembers.length}
                     </Badge>
                   </TabsTrigger>
                 </TabsList>
@@ -136,7 +146,7 @@ export default function EventDetail() {
                 </TabsContent>
 
                 <TabsContent value="team" className="space-y-3 mt-4">
-                  {teamMembers.map((member, i) => {
+                  {eventTeamMembers.map((member, i) => {
                     const isPresent = attendances.some(
                       (a) =>
                         a.event === event.id &&
@@ -164,7 +174,7 @@ export default function EventDetail() {
                       </div>
                     )
                   })}
-                  {teamMembers.length === 0 && (
+                  {eventTeamMembers.length === 0 && (
                     <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
                       Nenhum membro da equipe cadastrado.
                     </div>

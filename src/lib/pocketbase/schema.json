@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-20T15:54:01.569Z",
+  "generatedAt": "2026-05-20T16:14:58.530Z",
   "collections": [
     {
       "name": "users",
@@ -55,8 +55,8 @@
       "name": "churches",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.role = 'admin' || church_users_via_church.user ?= @request.auth.id",
-        "view": "@request.auth.role = 'admin' || church_users_via_church.user ?= @request.auth.id",
+        "list": "@request.auth.role = 'admin' || church_users_via_church.user ?= @request.auth.id || event_host.church_users_via_church.user ?= @request.auth.id || churches_via_event_host.church_users_via_church.user ?= @request.auth.id",
+        "view": "@request.auth.role = 'admin' || church_users_via_church.user ?= @request.auth.id || event_host.church_users_via_church.user ?= @request.auth.id || churches_via_event_host.church_users_via_church.user ?= @request.auth.id",
         "create": "@request.auth.role = 'admin'",
         "update": "@request.auth.role = 'admin'",
         "delete": "@request.auth.role = 'admin'"
@@ -81,6 +81,19 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "address",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "event_host",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "churches"
         }
       ],
       "indexes": []
@@ -131,11 +144,11 @@
       "name": "seeds",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
-        "view": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
-        "create": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
-        "update": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
-        "delete": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id"
+        "list": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id || church.event_host.church_users_via_church.user ?= @request.auth.id",
+        "view": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id || church.event_host.church_users_via_church.user ?= @request.auth.id",
+        "create": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id || church.event_host.church_users_via_church.user ?= @request.auth.id",
+        "update": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id || church.event_host.church_users_via_church.user ?= @request.auth.id",
+        "delete": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id || church.event_host.church_users_via_church.user ?= @request.auth.id"
       },
       "fields": [
         {
@@ -265,11 +278,11 @@
       "name": "team_members",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
-        "view": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
-        "create": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
-        "update": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
-        "delete": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id"
+        "list": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id || church.event_host.church_users_via_church.user ?= @request.auth.id",
+        "view": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id || church.event_host.church_users_via_church.user ?= @request.auth.id",
+        "create": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id || church.event_host.church_users_via_church.user ?= @request.auth.id",
+        "update": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id || church.event_host.church_users_via_church.user ?= @request.auth.id",
+        "delete": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id || church.event_host.church_users_via_church.user ?= @request.auth.id"
       },
       "fields": [
         {
@@ -344,11 +357,11 @@
       "name": "events",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
-        "view": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
-        "create": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
-        "update": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
-        "delete": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id"
+        "list": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id || church.event_host.church_users_via_church.user ?= @request.auth.id",
+        "view": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id || church.event_host.church_users_via_church.user ?= @request.auth.id",
+        "create": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id || church.event_host.church_users_via_church.user ?= @request.auth.id",
+        "update": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id || church.event_host.church_users_via_church.user ?= @request.auth.id",
+        "delete": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id || church.event_host.church_users_via_church.user ?= @request.auth.id"
       },
       "fields": [
         {
@@ -415,11 +428,11 @@
       "name": "attendances",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.role = 'admin' || event.church.church_users_via_church.user ?= @request.auth.id",
-        "view": "@request.auth.role = 'admin' || event.church.church_users_via_church.user ?= @request.auth.id",
-        "create": "@request.auth.role = 'admin' || event.church.church_users_via_church.user ?= @request.auth.id",
-        "update": "@request.auth.role = 'admin' || event.church.church_users_via_church.user ?= @request.auth.id",
-        "delete": "@request.auth.role = 'admin' || event.church.church_users_via_church.user ?= @request.auth.id"
+        "list": "@request.auth.role = 'admin' || event.church.church_users_via_church.user ?= @request.auth.id || event.church.event_host.church_users_via_church.user ?= @request.auth.id",
+        "view": "@request.auth.role = 'admin' || event.church.church_users_via_church.user ?= @request.auth.id || event.church.event_host.church_users_via_church.user ?= @request.auth.id",
+        "create": "@request.auth.role = 'admin' || event.church.church_users_via_church.user ?= @request.auth.id || event.church.event_host.church_users_via_church.user ?= @request.auth.id",
+        "update": "@request.auth.role = 'admin' || event.church.church_users_via_church.user ?= @request.auth.id || event.church.event_host.church_users_via_church.user ?= @request.auth.id",
+        "delete": "@request.auth.role = 'admin' || event.church.church_users_via_church.user ?= @request.auth.id || event.church.event_host.church_users_via_church.user ?= @request.auth.id"
       },
       "fields": [
         {

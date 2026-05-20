@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 import { useApp } from '@/contexts/app-context'
+import { useChurch } from '@/contexts/church-context'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -54,6 +55,7 @@ const eventSchema = z.object({
 
 export default function Events() {
   const { events, addEvent } = useApp()
+  const { currentChurch } = useChurch()
   const { toast } = useToast()
   const [openNew, setOpenNew] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState('all')
@@ -89,10 +91,11 @@ export default function Events() {
   }
 
   const now = new Date().toISOString().split('T')[0]
-  const upcomingEvents = events
+  const churchEvents = events.filter((e) => e.church === currentChurch?.id)
+  const upcomingEvents = churchEvents
     .filter((e) => e.date >= now && (categoryFilter === 'all' || e.category === categoryFilter))
     .sort((a, b) => a.date.localeCompare(b.date))
-  const pastEvents = events
+  const pastEvents = churchEvents
     .filter((e) => e.date < now && (categoryFilter === 'all' || e.category === categoryFilter))
     .sort((a, b) => b.date.localeCompare(a.date))
 
