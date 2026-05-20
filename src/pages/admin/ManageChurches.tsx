@@ -44,6 +44,9 @@ export default function ManageChurches() {
   const [editingChurch, setEditingChurch] = useState<any | null>(null)
   const [formData, setFormData] = useState({ name: '', address: '', event_host: 'none' })
 
+  const [deletingChurch, setDeletingChurch] = useState<any | null>(null)
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
+
   const [sortBy, setSortBy] = useState<'name' | 'seeds' | 'teamMembers'>('name')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
@@ -160,11 +163,22 @@ export default function ManageChurches() {
     }
   }
 
-  const handleDeleteChurch = async (id: string) => {
-    if (!confirm('Tem certeza que deseja remover esta igreja? Isso não pode ser desfeito.')) return
+  const handleDeleteClick = (church: any) => {
+    setDeletingChurch(church)
+    setDeleteConfirmation('')
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deletingChurch) return
+    if (deleteConfirmation !== deletingChurch.name) return
+
     try {
-      await pb.collection('churches').delete(id)
-      toast({ title: 'Sucesso', description: 'Igreja removida.' })
+      await pb.collection('churches').delete(deletingChurch.id)
+      toast({
+        title: 'Sucesso',
+        description: 'Igreja e registros associados removidos com sucesso.',
+      })
+      setDeletingChurch(null)
       loadData()
     } catch (err) {
       toast({ title: 'Erro', description: 'Falha ao remover igreja.', variant: 'destructive' })
@@ -191,8 +205,13 @@ export default function ManageChurches() {
     <div className="space-y-6 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Gerenciar Igrejas</h2>
-          <p className="text-muted-foreground">
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold tracking-tight">Gerenciar Igrejas</h2>
+            <Badge variant="secondary" className="text-xs">
+              Total de Igrejas: {churches.length}
+            </Badge>
+          </div>
+          <p className="text-muted-foreground mt-1">
             Adicione igrejas, gerencie endereços, liderança e acessos.
           </p>
         </div>
@@ -278,7 +297,7 @@ export default function ManageChurches() {
                       variant="ghost"
                       size="icon"
                       title="Excluir"
-                      onClick={() => handleDeleteChurch(church.id)}
+                      onClick={() => handleDeleteClick(church)}
                     >
                       <Trash2 className="h-4 w-4 text-destructive/80 hover:text-destructive" />
                     </Button>
@@ -350,6 +369,41 @@ export default function ManageChurches() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deletingChurch} onOpenChange={(open) => !open && setDeletingChurch(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Excluir Igreja</DialogTitle>
+            <DialogDescription className="text-destructive font-medium mt-2">
+              Esta ação é irreversível. Isso apagará permanentemente todos os seeds, membros da
+              equipe, eventos e presenças associados a esta igreja.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-foreground">
+              Para confirmar, digite o nome da igreja{' '}
+              <strong className="select-all">{deletingChurch?.name}</strong> abaixo:
+            </p>
+            <Input
+              value={deleteConfirmation}
+              onChange={(e) => setDeleteConfirmation(e.target.value)}
+              placeholder="Digite o nome da igreja"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletingChurch(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleteConfirmation !== deletingChurch?.name}
+            >
+              Confirmar Exclusão
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
