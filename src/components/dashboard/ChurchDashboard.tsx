@@ -8,10 +8,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 
 export function ChurchDashboard() {
-  const { seeds, events, attendances } = useApp()
+  const { seeds, events, attendances, teamMembers } = useApp()
   const { currentChurch } = useChurch()
 
   const filteredSeeds = seeds.filter((s) => s.church === currentChurch?.id)
+  const filteredTeam = teamMembers.filter((t) => t.church === currentChurch?.id)
+  const seedToTeamRatio =
+    filteredTeam.length > 0
+      ? (filteredSeeds.length / filteredTeam.length).toFixed(1)
+      : filteredSeeds.length
   const filteredEvents = events.filter((e) => e.church === currentChurch?.id)
   const filteredAttendances = attendances
 
@@ -53,7 +58,7 @@ export function ChurchDashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Total de Seeds"
           icon={Users}
@@ -71,6 +76,12 @@ export function ChurchDashboard() {
           icon={CheckCircle}
           value={`${avgAttendance}%`}
           desc="Nos eventos passados"
+        />
+        <MetricCard
+          title="Proporção Seed/Equipe"
+          icon={Users}
+          value={`${seedToTeamRatio} : 1`}
+          desc="Seeds por voluntário"
         />
       </div>
 

@@ -30,11 +30,19 @@ export default function EventDetail() {
     )
   }
 
-  const validChurchIds = [event.church].filter(Boolean) as string[]
-  const guestIds = availableChurches
-    .filter((c) => (c as any).event_host === event.church)
-    .map((c) => c.id)
-  validChurchIds.push(...guestIds)
+  const isGlobalEvent =
+    !event.church || event.category === 'Camp' || event.category === 'Connection'
+
+  const validChurchIds = isGlobalEvent
+    ? availableChurches.map((c) => c.id)
+    : ([event.church].filter(Boolean) as string[])
+
+  if (!isGlobalEvent) {
+    const guestIds = availableChurches
+      .filter((c) => (c as any).event_host === event.church)
+      .map((c) => c.id)
+    validChurchIds.push(...guestIds)
+  }
 
   const activeSeeds = seeds.filter((s) => s.status === 'Ativo' && validChurchIds.includes(s.church))
   const eventTeamMembers = teamMembers.filter((m) => validChurchIds.includes(m.church))

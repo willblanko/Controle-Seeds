@@ -101,9 +101,10 @@ export default function Events() {
   }
 
   const now = new Date().toISOString().split('T')[0]
-  const churchEvents = events.filter((e) =>
-    user?.role === 'admin' && !currentChurch ? true : e.church === currentChurch?.id,
-  )
+  const churchEvents = events.filter((e) => {
+    if (!e.church || e.category === 'Camp' || e.category === 'Connection') return true
+    return user?.role === 'admin' && !currentChurch ? true : e.church === currentChurch?.id
+  })
   const upcomingEvents = churchEvents
     .filter((e) => e.date >= now && (categoryFilter === 'all' || e.category === categoryFilter))
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -197,10 +198,14 @@ export default function Events() {
                         <SelectContent>
                           <SelectItem value="Hangout">Hangout</SelectItem>
                           <SelectItem value="Culto">Culto</SelectItem>
-                          <SelectItem value="Connection">Connection</SelectItem>
-                          <SelectItem value="Camp">Camp</SelectItem>
                           <SelectItem value="Reunião">Reunião</SelectItem>
-                        </SelectContent>
+                          {user?.role === 'admin' && (
+                            <>
+                              <SelectItem value="Connection">Connection</SelectItem>
+                              <SelectItem value="Camp">Camp</SelectItem>
+                            </>
+                          )}
+                        </SelectContent>{' '}
                       </Select>
                       <FormMessage />
                     </FormItem>

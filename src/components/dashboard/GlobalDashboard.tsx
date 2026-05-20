@@ -72,6 +72,7 @@ export function GlobalDashboard() {
   // Global Metrics
   const totalSeeds = seeds.length
   const totalTeam = teamMembers.length
+  const seedToTeamRatio = totalTeam > 0 ? (totalSeeds / totalTeam).toFixed(1) : totalSeeds
   const activeEvents = useMemo(
     () => events.filter((e) => e.date >= nowString).length,
     [events, nowString],
@@ -199,11 +200,11 @@ export function GlobalDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Visão Global</h2>
-          <p className="text-muted-foreground">Métricas e acompanhamento de toda a organização.</p>
+          <p className="text-muted-foreground">Métricas e acompanhamento de toda a igreja.</p>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card className="hover:shadow-md transition-shadow bg-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Seeds</CardTitle>
@@ -242,6 +243,16 @@ export function GlobalDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{totalPresent}</div>
             <p className="text-xs text-muted-foreground mt-1">Registros consolidados</p>
+          </CardContent>
+        </Card>
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Proporção Seed/Equipe</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{seedToTeamRatio} : 1</div>
+            <p className="text-xs text-muted-foreground mt-1">Seeds por voluntário</p>
           </CardContent>
         </Card>
       </div>
