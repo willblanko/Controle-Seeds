@@ -1,5 +1,6 @@
 import { useApp } from '@/contexts/app-context'
 import { useChurch } from '@/contexts/church-context'
+import { useAuth } from '@/hooks/use-auth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   ChartContainer,
@@ -13,6 +14,9 @@ import { Bar, BarChart, XAxis, YAxis, CartesianGrid } from 'recharts'
 export default function PresenceDashboard() {
   const { events, attendances, seeds } = useApp()
   const { currentChurch, availableChurches } = useChurch()
+  const { user } = useAuth()
+
+  const isGlobalAdmin = user?.role === 'admin' && !currentChurch
 
   const validChurchIds = [currentChurch?.id].filter(Boolean) as string[]
   if (currentChurch) {
@@ -22,7 +26,7 @@ export default function PresenceDashboard() {
     validChurchIds.push(...guestIds)
   }
 
-  // Exclude "Reunião" type events and past events only, and ensure event belongs to current church
+  // Exclude "Reunião" type events and past events only
   const now = new Date().toISOString().split('T')[0]
   const validEvents = events
     .filter(
@@ -30,12 +34,12 @@ export default function PresenceDashboard() {
         e.date < now &&
         e.category.toLowerCase() !== 'reunião' &&
         e.category.toLowerCase() !== 'reuniao' &&
-        e.church === currentChurch?.id,
+        (isGlobalAdmin ? true : e.church === currentChurch?.id),
     )
     .sort((a, b) => a.date.localeCompare(b.date))
 
   const activeSeeds = seeds.filter(
-    (s) => s.status === 'Ativo' && validChurchIds.includes(s.church),
+    (s) => s.status === 'Ativo' && (isGlobalAdmin ? true : validChurchIds.includes(s.church)),
   ).length
 
   const chartData = validEvents.map((event) => {

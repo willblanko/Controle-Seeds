@@ -47,12 +47,16 @@ export function ChurchProvider({ children }: { children: ReactNode }) {
       .getFullList<Church>()
       .then((churches) => {
         setAvailableChurches(churches)
-        // Auto-select if only 1 church
-        if (churches.length === 1) {
-          setCurrentChurch(churches[0])
-        } else if (currentChurch && !churches.find((c) => c.id === currentChurch.id)) {
-          // Reset if lost access to selected
-          setCurrentChurch(null)
+        if (user.role === 'admin') {
+          if (currentChurch && !churches.find((c) => c.id === currentChurch.id)) {
+            setCurrentChurch(null)
+          }
+        } else {
+          if (churches.length === 1) {
+            setCurrentChurch(churches[0])
+          } else if (currentChurch && !churches.find((c) => c.id === currentChurch.id)) {
+            setCurrentChurch(null)
+          }
         }
       })
       .catch((err) => {

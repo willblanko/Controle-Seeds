@@ -26,6 +26,8 @@ import { TeamMember } from '@/types/team'
 import { TeamMemberForm } from '@/components/team-member-form'
 import { cn } from '@/lib/utils'
 import { useApp } from '@/contexts/app-context'
+import { useChurch } from '@/contexts/church-context'
+import { useAuth } from '@/hooks/use-auth'
 
 function calculateAge(dob: string) {
   if (!dob) return 0
@@ -44,6 +46,8 @@ type FilterRole = 'Todos' | 'Líderes' | 'Membros' | 'CME' | 'EBM' | 'TE'
 
 export default function Equipe() {
   const { teamMembers, addTeamMember, updateTeamMember } = useApp()
+  const { currentChurch } = useChurch()
+  const { user } = useAuth()
   const [search, setSearch] = useState('')
   const [filterRole, setFilterRole] = useState<FilterRole>('Todos')
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -53,6 +57,9 @@ export default function Equipe() {
 
   const filteredMembers = useMemo(() => {
     return teamMembers.filter((member) => {
+      const matchChurch =
+        user?.role === 'admin' && !currentChurch ? true : member.church === currentChurch?.id
+      if (!matchChurch) return false
       const matchesSearch = member.name.toLowerCase().includes(search.toLowerCase())
       let matchesRole = true
 
@@ -83,6 +90,14 @@ export default function Equipe() {
   }, [teamMembers, search, filterRole])
 
   const handleAddMember = async (data: Omit<TeamMember, 'id' | 'church'>) => {
+    if (!currentChurch) {
+      toast({
+        title: 'Erro',
+        description: 'Selecione uma igreja no menu lateral para cadastrar.',
+        variant: 'destructive',
+      })
+      return
+    }
     await addTeamMember(data)
     setIsCreateOpen(false)
     toast({

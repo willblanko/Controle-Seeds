@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 
 import { useApp } from '@/contexts/app-context'
 import { useChurch } from '@/contexts/church-context'
+import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -56,6 +57,7 @@ const eventSchema = z.object({
 export default function Events() {
   const { events, addEvent } = useApp()
   const { currentChurch } = useChurch()
+  const { user } = useAuth()
   const { toast } = useToast()
   const [openNew, setOpenNew] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState('all')
@@ -73,6 +75,14 @@ export default function Events() {
   })
 
   async function onSubmit(data: z.infer<typeof eventSchema>) {
+    if (!currentChurch) {
+      toast({
+        title: 'Erro',
+        description: 'Selecione uma igreja no menu lateral para agendar.',
+        variant: 'destructive',
+      })
+      return
+    }
     await addEvent(data)
     setOpenNew(false)
     form.reset()
@@ -91,7 +101,9 @@ export default function Events() {
   }
 
   const now = new Date().toISOString().split('T')[0]
-  const churchEvents = events.filter((e) => e.church === currentChurch?.id)
+  const churchEvents = events.filter((e) =>
+    user?.role === 'admin' && !currentChurch ? true : e.church === currentChurch?.id,
+  )
   const upcomingEvents = churchEvents
     .filter((e) => e.date >= now && (categoryFilter === 'all' || e.category === categoryFilter))
     .sort((a, b) => a.date.localeCompare(b.date))

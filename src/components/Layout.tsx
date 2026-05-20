@@ -36,8 +36,8 @@ export default function Layout() {
         <div className="h-14 border-b bg-card hidden md:flex items-center justify-between px-8">
           <div className="text-sm font-medium text-muted-foreground flex items-center">
             Contexto atual:{' '}
-            <span className="text-foreground ml-2 px-2 py-1 bg-secondary rounded-md">
-              {currentChurch?.name}
+            <span className="text-foreground ml-2 px-2 py-1 bg-secondary rounded-md font-semibold">
+              {currentChurch?.name || 'Visão Global (Todas as Igrejas)'}
             </span>
           </div>
           <Button

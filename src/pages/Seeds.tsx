@@ -5,6 +5,8 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 import { useApp, Seed } from '@/contexts/app-context'
+import { useChurch } from '@/contexts/church-context'
+import { useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
@@ -97,6 +99,8 @@ const seedSchema = z
 
 export default function Seeds() {
   const { seeds, addSeed, updateSeed } = useApp()
+  const { currentChurch } = useChurch()
+  const { user } = useAuth()
   const { toast } = useToast()
   const [search, setSearch] = useState('')
   const [openNew, setOpenNew] = useState(false)
@@ -148,6 +152,10 @@ export default function Seeds() {
   })
 
   const filteredSeeds = seeds.filter((s) => {
+    const matchChurch =
+      user?.role === 'admin' && !currentChurch ? true : s.church === currentChurch?.id
+    if (!matchChurch) return false
+
     const matchSearch =
       s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.guardian1.toLowerCase().includes(search.toLowerCase())
@@ -233,6 +241,15 @@ export default function Seeds() {
       const generatedPhoto =
         data.photo ||
         `https://img.usecurling.com/ppl/thumbnail?gender=${data.sex === 'Feminino' ? 'female' : 'male'}&seed=${Math.random().toString().substring(2, 6)}`
+
+      if (!currentChurch) {
+        toast({
+          title: 'Erro',
+          description: 'Selecione uma igreja no menu lateral para cadastrar.',
+          variant: 'destructive',
+        })
+        return
+      }
 
       await addSeed({
         name: data.name,

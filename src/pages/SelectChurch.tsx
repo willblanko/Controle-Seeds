@@ -15,16 +15,20 @@ import {
 
 export default function SelectChurch() {
   const { availableChurches, setCurrentChurch, loadingChurches } = useChurch()
-  const { signOut } = useAuth()
+  const { signOut, user } = useAuth()
   const navigate = useNavigate()
   const [selectedChurchId, setSelectedChurchId] = useState<string>('')
 
   useEffect(() => {
+    if (user?.role === 'admin') {
+      navigate('/', { replace: true })
+      return
+    }
     if (!loadingChurches && availableChurches.length === 1) {
       setCurrentChurch(availableChurches[0])
       navigate('/', { replace: true })
     }
-  }, [availableChurches, loadingChurches, navigate, setCurrentChurch])
+  }, [availableChurches, loadingChurches, navigate, setCurrentChurch, user])
 
   const handleContinue = () => {
     const church = availableChurches.find((c) => c.id === selectedChurchId)

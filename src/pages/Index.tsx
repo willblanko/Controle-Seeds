@@ -2,6 +2,8 @@ import { Users, Calendar as CalendarIcon, CheckCircle, Cake, Gift } from 'lucide
 import { Link } from 'react-router-dom'
 
 import { useApp } from '@/contexts/app-context'
+import { useChurch } from '@/contexts/church-context'
+import { useAuth } from '@/hooks/use-auth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -9,17 +11,27 @@ import { Badge } from '@/components/ui/badge'
 
 export default function Index() {
   const { seeds, events, attendances } = useApp()
+  const { currentChurch } = useChurch()
+  const { user } = useAuth()
 
-  const activeSeeds = seeds.filter((s) => s.status === 'Ativo').length
+  const isGlobalAdmin = user?.role === 'admin' && !currentChurch
+
+  const filteredSeeds = seeds.filter((s) => (isGlobalAdmin ? true : s.church === currentChurch?.id))
+  const filteredEvents = events.filter((e) =>
+    isGlobalAdmin ? true : e.church === currentChurch?.id,
+  )
+  const filteredAttendances = attendances
+
+  const activeSeeds = filteredSeeds.filter((s) => s.status === 'Ativo').length
 
   const nowString = new Date().toISOString().split('T')[0]
-  const upcomingEvents = events.filter((e) => e.date >= nowString)
-  const pastEvents = events
+  const upcomingEvents = filteredEvents.filter((e) => e.date >= nowString)
+  const pastEvents = filteredEvents
     .filter((e) => e.date < nowString)
     .sort((a, b) => a.date.localeCompare(b.date))
 
   const totalPossible = pastEvents.length * activeSeeds
-  const actuallyPresent = attendances.filter(
+  const actuallyPresent = filteredAttendances.filter(
     (a) => a.present && a.type === 'seed' && pastEvents.find((e) => e.id === a.event),
   ).length
   const avgAttendance = totalPossible > 0 ? Math.round((actuallyPresent / totalPossible) * 100) : 0
@@ -37,7 +49,7 @@ export default function Index() {
   nowObj.setHours(0, 0, 0, 0)
   const in180Days = new Date(nowObj.getTime() + 180 * 24 * 60 * 60 * 1000)
 
-  const turning14Seeds = seeds
+  const turning14Seeds = filteredSeeds
     .map((seed) => {
       const bdParts = seed.birthDate.split('-')
       const bYear = parseInt(bdParts[0])
@@ -54,7 +66,7 @@ export default function Index() {
     .sort((a, b) => a.fourteenthBday.getTime() - b.fourteenthBday.getTime())
 
   const currentMonth = nowObj.getMonth() + 1
-  const birthdaysThisMonth = seeds
+  const birthdaysThisMonth = filteredSeeds
     .filter((seed) => seed.status === 'Ativo')
     .filter((seed) => {
       const bdParts = seed.birthDate.split('-')
@@ -148,7 +160,7 @@ export default function Index() {
                     <p className="text-sm font-medium text-muted-foreground">Presenças (Seeds)</p>
                     <p className="text-4xl font-bold text-foreground">
                       {
-                        attendances.filter(
+                        filteredAttendances.filter(
                           (a) => a.event === lastEvent.id && a.present && a.type === 'seed',
                         ).length
                       }
@@ -158,7 +170,7 @@ export default function Index() {
                     <p className="text-sm font-medium text-muted-foreground">Presenças (Equipe)</p>
                     <p className="text-4xl font-bold text-foreground">
                       {
-                        attendances.filter(
+                        filteredAttendances.filter(
                           (a) => a.event === lastEvent.id && a.present && a.type === 'team',
                         ).length
                       }

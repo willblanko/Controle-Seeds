@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
+import pb from '@/lib/pocketbase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -19,11 +20,11 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { signIn, isAuthenticated } = useAuth()
+  const { signIn, isAuthenticated, user } = useAuth()
   const navigate = useNavigate()
 
   if (isAuthenticated) {
-    return <Navigate to="/select-church" replace />
+    return <Navigate to={user?.role === 'admin' ? '/' : '/select-church'} replace />
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,7 +36,8 @@ export default function Login() {
       setError('Credenciais inválidas.')
       setIsSubmitting(false)
     } else {
-      navigate('/select-church')
+      const currentUser = pb.authStore.record
+      navigate(currentUser?.role === 'admin' ? '/' : '/select-church')
     }
   }
 

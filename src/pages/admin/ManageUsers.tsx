@@ -83,6 +83,12 @@ export default function ManageUsers() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrors({})
+
+    if (formData.role === 'user' && selectedChurches.length === 0) {
+      setErrors({ churches: 'Selecione pelo menos uma igreja.' })
+      return
+    }
+
     try {
       let savedUser
 
@@ -99,15 +105,22 @@ export default function ManageUsers() {
         savedUser = await pb.collection('users').update(editingUser.id, data)
 
         const currentLinks = churchUsers.filter((cu) => cu.user === editingUser.id)
-        const currentChurchIds = currentLinks.map((cu) => cu.church)
-        const toAdd = selectedChurches.filter((id) => !currentChurchIds.includes(id))
-        const toRemove = currentLinks.filter((cu) => !selectedChurches.includes(cu.church))
 
-        for (const id of toAdd) {
-          await pb.collection('church_users').create({ user: editingUser.id, church: id })
-        }
-        for (const cu of toRemove) {
-          await pb.collection('church_users').delete(cu.id)
+        if (formData.role === 'admin') {
+          for (const cu of currentLinks) {
+            await pb.collection('church_users').delete(cu.id)
+          }
+        } else {
+          const currentChurchIds = currentLinks.map((cu) => cu.church)
+          const toAdd = selectedChurches.filter((id) => !currentChurchIds.includes(id))
+          const toRemove = currentLinks.filter((cu) => !selectedChurches.includes(cu.church))
+
+          for (const id of toAdd) {
+            await pb.collection('church_users').create({ user: editingUser.id, church: id })
+          }
+          for (const cu of toRemove) {
+            await pb.collection('church_users').delete(cu.id)
+          }
         }
 
         toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso.' })
@@ -120,8 +133,10 @@ export default function ManageUsers() {
           role: formData.role,
         })
 
-        for (const churchId of selectedChurches) {
-          await pb.collection('church_users').create({ user: savedUser.id, church: churchId })
+        if (formData.role === 'user') {
+          for (const churchId of selectedChurches) {
+            await pb.collection('church_users').create({ user: savedUser.id, church: churchId })
+          }
         }
 
         toast({ title: 'Sucesso', description: 'Usuário criado com sucesso.' })
@@ -298,34 +313,39 @@ export default function ManageUsers() {
               </Select>
             </div>
 
-            <div className="space-y-2 pt-2">
-              <label className="text-sm font-medium">Igrejas Associadas</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 border rounded-md max-h-[160px] overflow-y-auto bg-muted/10">
-                {churches.map((c) => (
-                  <div key={c.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`church-${c.id}`}
-                      checked={selectedChurches.includes(c.id)}
-                      onCheckedChange={(checked) => {
-                        if (checked) setSelectedChurches([...selectedChurches, c.id])
-                        else setSelectedChurches(selectedChurches.filter((id) => id !== c.id))
-                      }}
-                    />
-                    <label
-                      htmlFor={`church-${c.id}`}
-                      className="text-sm cursor-pointer hover:text-primary transition-colors"
-                    >
-                      {c.name}
-                    </label>
-                  </div>
-                ))}
-                {churches.length === 0 && (
-                  <div className="text-xs text-muted-foreground col-span-2">
-                    Nenhuma igreja cadastrada no sistema.
-                  </div>
-                )}
+            {formData.role === 'user' && (
+              <div className="space-y-2 pt-2 animate-fade-in">
+                <label className="text-sm font-medium">
+                  Igrejas Associadas <span className="text-destructive">*</span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 border rounded-md max-h-[160px] overflow-y-auto bg-muted/10">
+                  {churches.map((c) => (
+                    <div key={c.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`church-${c.id}`}
+                        checked={selectedChurches.includes(c.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) setSelectedChurches([...selectedChurches, c.id])
+                          else setSelectedChurches(selectedChurches.filter((id) => id !== c.id))
+                        }}
+                      />
+                      <label
+                        htmlFor={`church-${c.id}`}
+                        className="text-sm cursor-pointer hover:text-primary transition-colors"
+                      >
+                        {c.name}
+                      </label>
+                    </div>
+                  ))}
+                  {churches.length === 0 && (
+                    <div className="text-xs text-muted-foreground col-span-2">
+                      Nenhuma igreja cadastrada no sistema.
+                    </div>
+                  )}
+                </div>
+                {errors.churches && <p className="text-xs text-destructive">{errors.churches}</p>}
               </div>
-            </div>
+            )}
 
             <DialogFooter className="pt-4">
               <Button type="submit" className="w-full sm:w-auto">

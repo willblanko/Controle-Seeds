@@ -56,19 +56,26 @@ export function AppSidebar() {
         {availableChurches.length > 0 && (
           <div className="px-4 py-3 border-b border-border/50 bg-muted/10 flex flex-col gap-1.5">
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-              Igreja Atual
+              Contexto Atual
             </span>
-            {availableChurches.length > 1 ? (
+            {availableChurches.length > 1 || user?.role === 'admin' ? (
               <Select
-                value={currentChurch?.id}
+                value={currentChurch?.id || 'all'}
                 onValueChange={(val) =>
-                  setCurrentChurch(availableChurches.find((c) => c.id === val)!)
+                  setCurrentChurch(
+                    val === 'all' ? null : availableChurches.find((c) => c.id === val)!,
+                  )
                 }
               >
                 <SelectTrigger className="h-8 bg-background border-dashed text-xs shadow-none">
-                  <SelectValue placeholder="Selecione" />
+                  <SelectValue placeholder="Selecione o contexto" />
                 </SelectTrigger>
                 <SelectContent>
+                  {user?.role === 'admin' && (
+                    <SelectItem value="all" className="text-xs font-semibold text-primary">
+                      Visão Global (Todas)
+                    </SelectItem>
+                  )}
                   {availableChurches.map((c) => (
                     <SelectItem key={c.id} value={c.id} className="text-xs">
                       {c.name}

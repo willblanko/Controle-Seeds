@@ -29,6 +29,8 @@ const AuthWrapper = () => {
 
 const ChurchWrapper = () => {
   const { currentChurch } = useChurch()
+  const { user } = useAuth()
+  if (user?.role === 'admin') return <Outlet />
   if (!currentChurch) return <Navigate to="/select-church" replace />
   return <Outlet />
 }
