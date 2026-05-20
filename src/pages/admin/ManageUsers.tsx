@@ -182,7 +182,8 @@ export default function ManageUsers() {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/30">
-              <TableHead>Nome & Email</TableHead>
+              <TableHead>Nome</TableHead>
+              <TableHead>Email</TableHead>
               <TableHead>Nível de Acesso</TableHead>
               <TableHead>Igrejas Associadas</TableHead>
               <TableHead className="text-right">Ações</TableHead>
@@ -196,10 +197,10 @@ export default function ManageUsers() {
               return (
                 <TableRow key={u.id}>
                   <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{u.name || 'Sem nome'}</span>
-                      <span className="text-xs text-muted-foreground">{u.email}</span>
-                    </div>
+                    <span className="font-medium">{u.name || 'Sem nome'}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">{u.email}</span>
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -238,7 +239,7 @@ export default function ManageUsers() {
             })}
             {users.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                   Nenhum usuário cadastrado.
                 </TableCell>
               </TableRow>
@@ -275,6 +276,8 @@ export default function ManageUsers() {
                 placeholder="joao@exemplo.com"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                readOnly={!!editingUser}
+                disabled={!!editingUser}
               />
               {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>
