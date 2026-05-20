@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, MapPin, Clock, CalendarDays } from 'lucide-react'
+import { Plus, MapPin, Clock, CalendarDays, MoreVertical, Pencil, CheckCircle } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -44,6 +44,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import pb from '@/lib/pocketbase/client'
 
 const eventSchema = z.object({
   title: z.string().min(3, 'Título obrigatório'),
@@ -60,6 +67,8 @@ export default function Events() {
   const { user } = useAuth()
   const { toast } = useToast()
   const [openNew, setOpenNew] = useState(false)
+  const [openEdit, setOpenEdit] = useState(false)
+  const [editingEvent, setEditingEvent] = useState<any>(null)
   const [categoryFilter, setCategoryFilter] = useState('all')
 
   const form = useForm<z.infer<typeof eventSchema>>({
@@ -74,7 +83,33 @@ export default function Events() {
     },
   })
 
+  useEffect(() => {
+    if (editingEvent && openEdit) {
+      form.reset({
+        title: editingEvent.title,
+        description: editingEvent.description,
+        date: editingEvent.date,
+        time: editingEvent.time,
+        location: editingEvent.location,
+        category: editingEvent.category,
+      })
+    }
+  }, [editingEvent, openEdit, form])
+
   async function onSubmit(data: z.infer<typeof eventSchema>) {
+    if (editingEvent) {
+      try {
+        await pb.collection('events').update(editingEvent.id, data)
+        toast({ title: 'Sucesso', description: 'Evento atualizado com sucesso!' })
+        setOpenEdit(false)
+        setEditingEvent(null)
+        setTimeout(() => window.location.reload(), 500)
+      } catch (e: any) {
+        toast({ title: 'Erro', description: 'Erro ao atualizar evento.', variant: 'destructive' })
+      }
+      return
+    }
+
     if (!currentChurch) {
       toast({
         title: 'Erro',
@@ -91,7 +126,6 @@ export default function Events() {
       description: 'Evento agendado com sucesso!',
     })
 
-    // Sincronização automatizada simulada com Google Calendar
     setTimeout(() => {
       toast({
         title: 'Integração Google Calendar',
@@ -112,16 +146,36 @@ export default function Events() {
     .filter((e) => e.date < now && (categoryFilter === 'all' || e.category === categoryFilter))
     .sort((a, b) => b.date.localeCompare(a.date))
 
-  const EventCard = ({ event }: { event: any }) => (
+  const EventCard = ({ event }: { event: any }) => {
+    const canEdit = user?.role === 'admin' || (event.church && currentChurch && event.church === currentChurch.id)
+    return (
     <Card className="hover:shadow-md transition-shadow flex flex-col h-full bg-card">
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start gap-4">
           <div className="flex-1">
-            <CardTitle className="line-clamp-1 text-lg">{event.title}</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="line-clamp-1 text-lg">{event.title}</CardTitle>
+              {event.completed && <CheckCircle className="h-4 w-4 text-green-500 shrink-0" title="Concluído" />}
+            </div>
             <CardDescription className="line-clamp-2 mt-1 min-h-[40px]">
               {event.description}
             </CardDescription>
           </div>
+          </div>
+          {canEdit && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 -mt-2 shrink-0">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => { setEditingEvent(event); setOpenEdit(true); }}>
+                  <Pencil className="mr-2 h-4 w-4" /> Editar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
         <div className="mt-2 inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground w-fit">
           {event.category}
@@ -147,7 +201,8 @@ export default function Events() {
         </Button>
       </CardFooter>
     </Card>
-  )
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -157,15 +212,18 @@ export default function Events() {
           <p className="text-muted-foreground">Acompanhe e crie novas atividades para os Seeds.</p>
         </div>
 
-        <Sheet open={openNew} onOpenChange={setOpenNew}>
+        <Sheet open={openNew || openEdit} onOpenChange={(val) => {
+          if (!val) { setOpenNew(false); setOpenEdit(false); setEditingEvent(null); form.reset(); }
+          else setOpenNew(true);
+        }}>
           <SheetTrigger asChild>
-            <Button className="shrink-0">
+            <Button className="shrink-0" onClick={() => setOpenNew(true)}>
               <Plus className="mr-2 h-4 w-4" /> Novo Evento
             </Button>
           </SheetTrigger>
           <SheetContent className="w-full sm:max-w-md overflow-y-auto">
             <SheetHeader className="mb-6">
-              <SheetTitle>Agendar Novo Evento</SheetTitle>
+              <SheetTitle>{editingEvent ? 'Editar Evento' : 'Agendar Novo Evento'}</SheetTitle>
               <SheetDescription>Preencha os dados do evento.</SheetDescription>
             </SheetHeader>
             <Form {...form}>
@@ -266,7 +324,7 @@ export default function Events() {
                   )}
                 />
                 <Button type="submit" className="w-full mt-6">
-                  Criar Evento
+                  {editingEvent ? 'Salvar Alterações' : 'Criar Evento'}
                 </Button>
               </form>
             </Form>

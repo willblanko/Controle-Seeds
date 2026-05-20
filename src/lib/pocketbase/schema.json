@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-20T19:59:47.635Z",
+  "generatedAt": "2026-05-20T20:08:41.957Z",
   "collections": [
     {
       "name": "users",
@@ -414,6 +414,18 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "completed",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "media",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_events_church ON events (church)"]

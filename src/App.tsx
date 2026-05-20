@@ -12,6 +12,7 @@ import Index from './pages/Index'
 import Seeds from './pages/Seeds'
 import Events from './pages/Events'
 import EventDetail from './pages/EventDetail'
+import EventCheckIn from './pages/EventCheckIn'
 import Equipe from './pages/Equipe'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
@@ -61,6 +62,7 @@ const App = () => (
                     <Route path="/equipe" element={<Equipe />} />
                     <Route path="/eventos" element={<Events />} />
                     <Route path="/eventos/:id" element={<EventDetail />} />
+                    <Route path="/eventos/:id/check-in" element={<EventCheckIn />} />
                     <Route path="/dashboard-presenca" element={<PresenceDashboard />} />
                     <Route element={<AdminWrapper />}>
                       <Route path="/admin/churches" element={<ManageChurches />} />

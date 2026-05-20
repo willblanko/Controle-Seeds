@@ -1,8 +1,21 @@
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, MapPin, Clock, CalendarDays } from 'lucide-react'
+import {
+  ArrowLeft,
+  MapPin,
+  Clock,
+  CalendarDays,
+  Link as LinkIcon,
+  CheckCircle,
+  Upload,
+  X,
+  ImageIcon,
+} from 'lucide-react'
 
 import { useApp } from '@/contexts/app-context'
 import { useChurch } from '@/contexts/church-context'
+import { useAuth } from '@/hooks/use-auth'
+import pb from '@/lib/pocketbase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
@@ -10,14 +23,37 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Input } from '@/components/ui/input'
 
 export default function EventDetail() {
   const { id } = useParams()
   const { events, seeds, teamMembers, attendances, toggleAttendance } = useApp()
-  const { availableChurches } = useChurch()
+  const { availableChurches, currentChurch } = useChurch()
+  const { user } = useAuth()
   const { toast } = useToast()
 
+  const [isCompleting, setIsCompleting] = useState(false)
+  const [showConfirmComplete, setShowConfirmComplete] = useState(false)
+  const [mediaFiles, setMediaFiles] = useState<any[]>([])
+  const [isUploading, setIsUploading] = useState(false)
+
   const event = events.find((e) => e.id === id)
+
+  useEffect(() => {
+    if (event?.media) {
+      setMediaFiles(Array.isArray(event.media) ? event.media : [event.media])
+    }
+  }, [event])
 
   if (!event) {
     return (
@@ -54,6 +90,88 @@ export default function EventDetail() {
     (a) => a.event === id && a.type === 'team' && a.present,
   ).length
 
+  const canComplete = () => {
+    if (event.completed) return false
+    if (user?.role === 'admin') return true
+    if (event.category === 'Camp' || event.category === 'Connection') return false
+    if (event.church && currentChurch && event.church === currentChurch.id) return true
+    return false
+  }
+
+  const handleCompleteEvent = async (force: boolean = false) => {
+    if (!force && (presentSeedsCount === 0 || presentTeamCount === 0)) {
+      setShowConfirmComplete(true)
+      return
+    }
+
+    setIsCompleting(true)
+    try {
+      await pb.collection('events').update(event.id, { completed: true })
+      toast({ title: 'Sucesso', description: 'Evento marcado como concluído!' })
+      setTimeout(() => window.location.reload(), 500)
+    } catch (e) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível concluir o evento.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsCompleting(false)
+      setShowConfirmComplete(false)
+    }
+  }
+
+  const handleUploadMedia = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return
+    const files = Array.from(e.target.files)
+    if (files.some((f) => f.size > 52428800)) {
+      toast({
+        title: 'Erro',
+        description: 'Um ou mais arquivos excedem o limite de 50MB.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsUploading(true)
+    try {
+      const formData = new FormData()
+      files.forEach((f) => formData.append('media', f))
+      const updatedRecord = await pb.collection('events').update(event.id, formData)
+      setMediaFiles(
+        Array.isArray(updatedRecord.media) ? updatedRecord.media : [updatedRecord.media],
+      )
+      toast({ title: 'Sucesso', description: 'Mídia adicionada com sucesso!' })
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Falha ao fazer upload da mídia.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsUploading(false)
+      if (e.target) e.target.value = ''
+    }
+  }
+
+  const handleRemoveMedia = async (filename: string) => {
+    try {
+      const updatedRecord = await pb.collection('events').update(event.id, {
+        'media-': filename,
+      })
+      setMediaFiles(
+        Array.isArray(updatedRecord.media)
+          ? updatedRecord.media
+          : updatedRecord.media
+            ? [updatedRecord.media]
+            : [],
+      )
+      toast({ title: 'Sucesso', description: 'Mídia removida com sucesso.' })
+    } catch (error) {
+      toast({ title: 'Erro', description: 'Erro ao remover mídia.', variant: 'destructive' })
+    }
+  }
+
   const handleSaveNotes = () => {
     toast({
       title: 'Anotações salvas',
@@ -62,7 +180,25 @@ export default function EventDetail() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto pb-12">
+      <AlertDialog open={showConfirmComplete} onOpenChange={setShowConfirmComplete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Concluir sem presenças completas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ainda não há presenças registradas para a equipe ou para os seeds neste evento. Tem
+              certeza que deseja concluí-lo mesmo assim? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleCompleteEvent(true)}>
+              Sim, concluir evento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div>
         <Button
           variant="ghost"
@@ -74,18 +210,43 @@ export default function EventDetail() {
             <ArrowLeft className="mr-2 h-4 w-4" /> Voltar aos Eventos
           </Link>
         </Button>
-        <h2 className="text-3xl font-bold tracking-tight">{event.title}</h2>
-        <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <CalendarDays className="h-4 w-4 text-primary" />{' '}
-            {new Date(event.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Clock className="h-4 w-4 text-primary" /> {event.time}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <MapPin className="h-4 w-4 text-primary" /> {event.location}
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3">
+              <h2 className="text-3xl font-bold tracking-tight">{event.title}</h2>
+              {event.completed && (
+                <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+                  Concluído
+                </Badge>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <CalendarDays className="h-4 w-4 text-primary" />{' '}
+                {new Date(event.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4 text-primary" /> {event.time}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <MapPin className="h-4 w-4 text-primary" /> {event.location}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <Button variant="outline" asChild>
+              <Link to={`/eventos/${event.id}/check-in`} target="_blank">
+                <LinkIcon className="mr-2 h-4 w-4" /> Link de Presença
+              </Link>
+            </Button>
+            {canComplete() && (
+              <Button onClick={() => handleCompleteEvent(false)} disabled={isCompleting}>
+                <CheckCircle className="mr-2 h-4 w-4" />{' '}
+                {isCompleting ? 'Concluindo...' : 'Concluir Evento'}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -140,6 +301,7 @@ export default function EventDetail() {
                         </div>
                         <Switch
                           checked={isPresent}
+                          disabled={event.completed}
                           onCheckedChange={() => toggleAttendance(event.id, seed.id, 'seed')}
                           aria-label={`Marcar presença para o Seed ${seed.name}`}
                         />
@@ -176,6 +338,7 @@ export default function EventDetail() {
                         </div>
                         <Switch
                           checked={isPresent}
+                          disabled={event.completed}
                           onCheckedChange={() => toggleAttendance(event.id, member.id, 'team')}
                           aria-label={`Marcar presença para o membro ${member.name}`}
                         />
@@ -216,9 +379,87 @@ export default function EventDetail() {
                 placeholder="Como foi o evento? Algum destaque importante?"
                 className="min-h-[120px] resize-none mb-4"
               />
-              <Button className="w-full" onClick={handleSaveNotes}>
+              <Button className="w-full" onClick={handleSaveNotes} disabled={event.completed}>
                 Salvar Anotações
               </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>Fotos e Vídeos</CardTitle>
+              <CardDescription>Galeria de mídias do evento.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {mediaFiles.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  {mediaFiles.map((filename: string) => {
+                    const url = pb.files.getUrl(event, filename)
+                    const isVideo = filename.match(/\.(mp4|mov|webm)$/i)
+                    return (
+                      <div
+                        key={filename}
+                        className="relative group rounded-md overflow-hidden bg-muted aspect-square"
+                      >
+                        {isVideo ? (
+                          <video src={url} className="w-full h-full object-cover" />
+                        ) : (
+                          <img
+                            src={url}
+                            alt="Mídia do evento"
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                        {!event.completed && (
+                          <button
+                            onClick={() => handleRemoveMedia(filename)}
+                            className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center p-6 text-center border-2 border-dashed rounded-lg bg-muted/30 mb-4">
+                  <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhuma mídia adicionada.</p>
+                </div>
+              )}
+
+              {!event.completed && (
+                <div>
+                  <Input
+                    type="file"
+                    id="media-upload"
+                    multiple
+                    accept="image/*,video/*"
+                    className="hidden"
+                    onChange={handleUploadMedia}
+                    disabled={isUploading || mediaFiles.length >= 10}
+                  />
+                  <label htmlFor="media-upload">
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="w-full cursor-pointer"
+                      disabled={isUploading || mediaFiles.length >= 10}
+                    >
+                      <span>
+                        <Upload className="mr-2 h-4 w-4" />
+                        {isUploading ? 'Enviando...' : 'Adicionar Mídia'}
+                      </span>
+                    </Button>
+                  </label>
+                  {mediaFiles.length >= 10 && (
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      Limite de 10 arquivos atingido.
+                    </p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
