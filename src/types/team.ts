@@ -16,5 +16,7 @@ export interface TeamMember {
     cme: CourseData
     ebm: CourseData
     te: CourseData
+    TE?: string
+    EBM?: string
   }
 }

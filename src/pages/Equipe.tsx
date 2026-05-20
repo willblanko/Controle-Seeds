@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Search, Plus, Star, User as UserIcon, Pencil } from 'lucide-react'
+import { Search, Plus, Star, User as UserIcon, Pencil, Upload, Loader2 } from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils'
 import { useApp } from '@/contexts/app-context'
 import { useChurch } from '@/contexts/church-context'
 import { useAuth } from '@/hooks/use-auth'
+import pb from '@/lib/pocketbase/client'
 
 function calculateAge(dob: string) {
   if (!dob) return 0
@@ -51,6 +52,9 @@ export default function Equipe() {
   const [search, setSearch] = useState('')
   const [filterRole, setFilterRole] = useState<FilterRole>('Todos')
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isImportOpen, setIsImportOpen] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [isImporting, setIsImporting] = useState(false)
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
   const { toast } = useToast()
@@ -71,13 +75,13 @@ export default function Equipe() {
           matchesRole = member.role === 'Membro'
           break
         case 'CME':
-          matchesRole = member.courses.cme.status === 'Completo'
+          matchesRole = member.courses?.cme?.status === 'Completo'
           break
         case 'EBM':
-          matchesRole = member.courses.ebm.status === 'Completo'
+          matchesRole = member.courses?.ebm?.status === 'Completo' || member.courses?.EBM === 'Sim'
           break
         case 'TE':
-          matchesRole = member.courses.te.status === 'Completo'
+          matchesRole = member.courses?.te?.status === 'Completo' || member.courses?.TE === 'Sim'
           break
         case 'Todos':
         default:
@@ -118,6 +122,92 @@ export default function Equipe() {
     }
   }
 
+  const handleImport = async () => {
+    if (!importFile) return
+    setIsImporting(true)
+    try {
+      const text = await importFile.text()
+      const lines = text.split('\n').filter((l) => l.trim().length > 0)
+      if (lines.length < 2) throw new Error('Arquivo vazio ou sem dados válidos.')
+
+      const headers = lines[0].split(';').map((h) => h.replace(/^"|"$/g, '').trim())
+      const churches = await pb.collection('churches').getFullList()
+
+      let successCount = 0
+      let skipCount = 0
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(';').map((v) => v.replace(/^"|"$/g, '').trim())
+        const row: Record<string, string> = {}
+        headers.forEach((h, idx) => {
+          row[h] = values[idx] || ''
+        })
+
+        const churchName = row['Igreja']
+        const churchMatch = churches.find((c) => c.name.toLowerCase() === churchName?.toLowerCase())
+
+        if (!churchMatch) {
+          skipCount++
+          continue
+        }
+
+        const rawDob = row['Nascimento'] || ''
+        let dob = ''
+        if (rawDob) {
+          const parts = rawDob.split('/')
+          if (parts.length === 3) {
+            dob = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`
+          }
+        }
+
+        const ebmVal = row['EBM'] || ''
+        const teVal = row['TE'] || ''
+
+        const ebmMapped =
+          ebmVal === 'Sim' ? 'Completo' : ebmVal === 'Cursando' ? 'Em progresso' : 'Não feito'
+        const teMapped =
+          teVal === 'Sim' ? 'Completo' : teVal === 'Cursando' ? 'Em progresso' : 'Não feito'
+
+        const memberData = {
+          church: churchMatch.id,
+          name: row['Nome'] || 'Sem Nome',
+          dateOfBirth: dob,
+          role: 'Membro',
+          photoUrl: '',
+          courses: {
+            TE: teVal,
+            EBM: ebmVal,
+            cme: { status: 'Não feito' },
+            ebm: { status: ebmMapped },
+            te: { status: teMapped },
+          },
+        }
+
+        try {
+          await pb.collection('team_members').create(memberData)
+          successCount++
+        } catch (e) {
+          skipCount++
+        }
+      }
+
+      toast({
+        title: 'Importação concluída',
+        description: `${successCount} membros importados. ${skipCount} ignorados (igreja não encontrada ou erro).`,
+      })
+      setIsImportOpen(false)
+      setImportFile(null)
+    } catch (error: any) {
+      toast({
+        title: 'Erro na importação',
+        description: error.message || 'Houve um erro ao processar o arquivo CSV.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsImporting(false)
+    }
+  }
+
   return (
     <div className="flex flex-col h-full max-w-5xl mx-auto p-4 md:p-6 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -125,21 +215,61 @@ export default function Equipe() {
           <h1 className="text-3xl font-bold tracking-tight">Equipe</h1>
           <p className="text-muted-foreground">Gerencie líderes e membros da sua equipe.</p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2 shrink-0">
-              <Plus className="h-4 w-4" />
-              <span>Novo Membro</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Adicionar Membro</DialogTitle>
-              <DialogDescription>Cadastre um novo membro para a equipe.</DialogDescription>
-            </DialogHeader>
-            <TeamMemberForm onSubmit={handleAddMember} onCancel={() => setIsCreateOpen(false)} />
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 shrink-0">
+                <Upload className="h-4 w-4" />
+                <span>Importar Equipe</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[400px]">
+              <DialogHeader>
+                <DialogTitle>Importar Equipe</DialogTitle>
+                <DialogDescription>
+                  Selecione um arquivo CSV para importar a equipe. O delimitador deve ser
+                  ponto-e-vírgula (;).
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col gap-4 py-4">
+                <Input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsImportOpen(false)}
+                  disabled={isImporting}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={handleImport} disabled={!importFile || isImporting}>
+                  {isImporting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {isImporting ? 'Importando...' : 'Importar'}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 shrink-0">
+                <Plus className="h-4 w-4" />
+                <span>Novo Membro</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Adicionar Membro</DialogTitle>
+                <DialogDescription>Cadastre um novo membro para a equipe.</DialogDescription>
+              </DialogHeader>
+              <TeamMemberForm onSubmit={handleAddMember} onCancel={() => setIsCreateOpen(false)} />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="space-y-4 mb-6">
@@ -315,27 +445,31 @@ export default function Equipe() {
                       <div className="flex flex-col">
                         <span className="text-muted-foreground mb-1">CME</span>
                         <span className="font-medium">
-                          {selectedMember.courses.cme.status}
-                          {selectedMember.courses.cme.status === 'Completo' &&
-                            selectedMember.courses.cme.completionYear &&
+                          {selectedMember.courses?.cme?.status || 'Não feito'}
+                          {selectedMember.courses?.cme?.status === 'Completo' &&
+                            selectedMember.courses?.cme?.completionYear &&
                             ` (${selectedMember.courses.cme.completionYear})`}
                         </span>
                       </div>
                       <div className="flex flex-col">
                         <span className="text-muted-foreground mb-1">EBM</span>
                         <span className="font-medium">
-                          {selectedMember.courses.ebm.status}
-                          {selectedMember.courses.ebm.status === 'Completo' &&
-                            selectedMember.courses.ebm.completionYear &&
+                          {selectedMember.courses?.ebm?.status ||
+                            selectedMember.courses?.EBM ||
+                            'Não feito'}
+                          {selectedMember.courses?.ebm?.status === 'Completo' &&
+                            selectedMember.courses?.ebm?.completionYear &&
                             ` (${selectedMember.courses.ebm.completionYear})`}
                         </span>
                       </div>
                       <div className="flex flex-col">
                         <span className="text-muted-foreground mb-1">TE</span>
                         <span className="font-medium">
-                          {selectedMember.courses.te.status}
-                          {selectedMember.courses.te.status === 'Completo' &&
-                            selectedMember.courses.te.completionYear &&
+                          {selectedMember.courses?.te?.status ||
+                            selectedMember.courses?.TE ||
+                            'Não feito'}
+                          {selectedMember.courses?.te?.status === 'Completo' &&
+                            selectedMember.courses?.te?.completionYear &&
                             ` (${selectedMember.courses.te.completionYear})`}
                         </span>
                       </div>
