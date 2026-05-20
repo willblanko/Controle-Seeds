@@ -147,60 +147,67 @@ export default function Events() {
     .sort((a, b) => b.date.localeCompare(a.date))
 
   const EventCard = ({ event }: { event: any }) => {
-    const canEdit = user?.role === 'admin' || (event.church && currentChurch && event.church === currentChurch.id)
+    const canEdit =
+      user?.role === 'admin' || (event.church && currentChurch && event.church === currentChurch.id)
     return (
-    <Card className="hover:shadow-md transition-shadow flex flex-col h-full bg-card">
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-start gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <CardTitle className="line-clamp-1 text-lg">{event.title}</CardTitle>
-              {event.completed && <CheckCircle className="h-4 w-4 text-green-500 shrink-0" title="Concluído" />}
+      <Card className="hover:shadow-md transition-shadow flex flex-col h-full bg-card">
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-start gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <CardTitle className="line-clamp-1 text-lg">{event.title}</CardTitle>
+                {event.completed && (
+                  <CheckCircle className="h-4 w-4 text-green-500 shrink-0" title="Concluído" />
+                )}
+              </div>
+              <CardDescription className="line-clamp-2 mt-1 min-h-[40px]">
+                {event.description}
+              </CardDescription>
             </div>
-            <CardDescription className="line-clamp-2 mt-1 min-h-[40px]">
-              {event.description}
-            </CardDescription>
+            {canEdit && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 -mt-2 shrink-0">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setEditingEvent(event)
+                      setOpenEdit(true)
+                    }}
+                  >
+                    <Pencil className="mr-2 h-4 w-4" /> Editar
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
+          <div className="mt-2 inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground w-fit">
+            {event.category}
           </div>
-          {canEdit && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 -mt-2 shrink-0">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => { setEditingEvent(event); setOpenEdit(true); }}>
-                  <Pencil className="mr-2 h-4 w-4" /> Editar
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-        <div className="mt-2 inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground w-fit">
-          {event.category}
-        </div>
-      </CardHeader>
-      <CardContent className="flex-1 pb-4">
-        <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 shrink-0 text-primary" />{' '}
-            {new Date(event.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+        </CardHeader>
+        <CardContent className="flex-1 pb-4">
+          <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 shrink-0 text-primary" />{' '}
+              {new Date(event.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 shrink-0 text-primary" /> {event.time}
+            </div>
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 shrink-0 text-primary" /> {event.location}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 shrink-0 text-primary" /> {event.time}
-          </div>
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 shrink-0 text-primary" /> {event.location}
-          </div>
-        </div>
-      </CardContent>
-      <CardFooter className="pt-0">
-        <Button asChild variant="outline" className="w-full border-border/60 hover:bg-secondary">
-          <Link to={`/eventos/${event.id}`}>Ver Detalhes e Presença</Link>
-        </Button>
-      </CardFooter>
-    </Card>
+        </CardContent>
+        <CardFooter className="pt-0">
+          <Button asChild variant="outline" className="w-full border-border/60 hover:bg-secondary">
+            <Link to={`/eventos/${event.id}`}>Ver Detalhes e Presença</Link>
+          </Button>
+        </CardFooter>
+      </Card>
     )
   }
 
@@ -212,10 +219,17 @@ export default function Events() {
           <p className="text-muted-foreground">Acompanhe e crie novas atividades para os Seeds.</p>
         </div>
 
-        <Sheet open={openNew || openEdit} onOpenChange={(val) => {
-          if (!val) { setOpenNew(false); setOpenEdit(false); setEditingEvent(null); form.reset(); }
-          else setOpenNew(true);
-        }}>
+        <Sheet
+          open={openNew || openEdit}
+          onOpenChange={(val) => {
+            if (!val) {
+              setOpenNew(false)
+              setOpenEdit(false)
+              setEditingEvent(null)
+              form.reset()
+            } else setOpenNew(true)
+          }}
+        >
           <SheetTrigger asChild>
             <Button className="shrink-0" onClick={() => setOpenNew(true)}>
               <Plus className="mr-2 h-4 w-4" /> Novo Evento
