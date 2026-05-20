@@ -38,8 +38,8 @@ export default function PresenceDashboard() {
     )
     .sort((a, b) => a.date.localeCompare(b.date))
 
-  const activeSeeds = seeds.filter(
-    (s) => s.status === 'Ativo' && (isGlobalAdmin ? true : validChurchIds.includes(s.church)),
+  const activeSeeds = seeds.filter((s) =>
+    isGlobalAdmin ? true : validChurchIds.includes(s.church),
   ).length
 
   const chartData = validEvents.map((event) => {

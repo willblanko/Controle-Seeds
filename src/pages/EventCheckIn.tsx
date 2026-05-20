@@ -66,61 +66,65 @@ export default function EventCheckIn() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-20 p-4 sm:p-6 lg:p-8">
-      <div className="flex items-center gap-4 border-b pb-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link to={`/eventos/${event.id}`}>
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-xl font-bold leading-tight">Check-in: {event.title}</h1>
-          <p className="text-sm text-muted-foreground">Marque a presença dos Seeds rapidamente.</p>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-3xl mx-auto space-y-6 pb-20 p-4 sm:p-6 lg:p-8">
+        <div className="flex items-center gap-4 border-b pb-4 mt-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link to={`/eventos/${event.id}`}>
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-xl font-bold leading-tight">Check-in: {event.title}</h1>
+            <p className="text-sm text-muted-foreground">
+              Marque a presença dos Seeds rapidamente.
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar Seed por nome..."
-          className="pl-9 h-12 text-base rounded-full bg-card"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar Seed por nome..."
+            className="pl-9 h-12 text-base rounded-full bg-card"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
 
-      <div className="space-y-2">
-        {filteredSeeds.length === 0 ? (
-          <div className="text-center py-10 text-muted-foreground">Nenhum seed encontrado.</div>
-        ) : (
-          filteredSeeds.map((seed) => {
-            const isPresent = attendances.some(
-              (a) => a.event === event.id && a.seed === seed.id && a.type === 'seed' && a.present,
-            )
+        <div className="space-y-2">
+          {filteredSeeds.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">Nenhum seed encontrado.</div>
+          ) : (
+            filteredSeeds.map((seed) => {
+              const isPresent = attendances.some(
+                (a) => a.event === event.id && a.seed === seed.id && a.type === 'seed' && a.present,
+              )
 
-            return (
-              <div
-                key={seed.id}
-                className={`flex items-center justify-between p-4 rounded-xl border transition-colors ${
-                  isPresent ? 'border-primary/50 bg-primary/5' : 'bg-card'
-                } cursor-pointer`}
-                onClick={() => toggleAttendance(event.id, seed.id, 'seed')}
-              >
-                <div>
-                  <p className="font-semibold text-base">{seed.name}</p>
-                  <p className="text-sm text-muted-foreground">Resp: {seed.guardian1}</p>
+              return (
+                <div
+                  key={seed.id}
+                  className={`flex items-center justify-between p-4 rounded-xl border transition-colors ${
+                    isPresent ? 'border-primary/50 bg-primary/5' : 'bg-card'
+                  } cursor-pointer`}
+                  onClick={() => toggleAttendance(event.id, seed.id, 'seed')}
+                >
+                  <div>
+                    <p className="font-semibold text-base">{seed.name}</p>
+                    <p className="text-sm text-muted-foreground">Resp: {seed.guardian1}</p>
+                  </div>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Switch
+                      checked={isPresent}
+                      onCheckedChange={() => toggleAttendance(event.id, seed.id, 'seed')}
+                      className="scale-125"
+                    />
+                  </div>
                 </div>
-                <div onClick={(e) => e.stopPropagation()}>
-                  <Switch
-                    checked={isPresent}
-                    onCheckedChange={() => toggleAttendance(event.id, seed.id, 'seed')}
-                    className="scale-125"
-                  />
-                </div>
-              </div>
-            )
-          })
-        )}
+              )
+            })
+          )}
+        </div>
       </div>
     </div>
   )

@@ -97,9 +97,17 @@ export default function Events() {
   }, [editingEvent, openEdit, form])
 
   async function onSubmit(data: z.infer<typeof eventSchema>) {
+    const [y, m, d] = data.date.split('-')
+    const dateSuffix = `${d}/${m}/${y}`
+    let finalTitle = data.title.trim()
+    if (!finalTitle.endsWith(dateSuffix)) {
+      finalTitle = `${finalTitle} - ${dateSuffix}`
+    }
+    const finalData = { ...data, title: finalTitle }
+
     if (editingEvent) {
       try {
-        await pb.collection('events').update(editingEvent.id, data)
+        await pb.collection('events').update(editingEvent.id, finalData)
         toast({ title: 'Sucesso', description: 'Evento atualizado com sucesso!' })
         setOpenEdit(false)
         setEditingEvent(null)
@@ -110,7 +118,8 @@ export default function Events() {
       return
     }
 
-    if (!currentChurch) {
+    const isGlobal = finalData.category === 'Camp' || finalData.category === 'Connection'
+    if (!currentChurch && !isGlobal) {
       toast({
         title: 'Erro',
         description: 'Selecione uma igreja no menu lateral para agendar.',
@@ -118,20 +127,32 @@ export default function Events() {
       })
       return
     }
-    await addEvent(data)
-    setOpenNew(false)
-    form.reset()
-    toast({
-      title: 'Sucesso',
-      description: 'Evento agendado com sucesso!',
-    })
 
-    setTimeout(() => {
+    try {
+      if (isGlobal) {
+        await pb.collection('events').create({
+          ...finalData,
+          church: '',
+        })
+      } else {
+        await addEvent(finalData)
+      }
+      setOpenNew(false)
+      form.reset()
       toast({
-        title: 'Integração Google Calendar',
-        description: 'Evento sincronizado com sucesso e convites enviados para a Equipe.',
+        title: 'Sucesso',
+        description: 'Evento agendado com sucesso!',
       })
-    }, 1500)
+
+      setTimeout(() => {
+        toast({
+          title: 'Integração Google Calendar',
+          description: 'Evento sincronizado com sucesso e convites enviados para a Equipe.',
+        })
+      }, 1500)
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Erro ao criar evento.', variant: 'destructive' })
+    }
   }
 
   const now = new Date().toISOString().split('T')[0]

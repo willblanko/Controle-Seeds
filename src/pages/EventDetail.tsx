@@ -101,11 +101,18 @@ export default function EventDetail() {
     const hasSeedAttendance = attendances.some(
       (a) => a.event === id && a.type === 'seed' && a.present,
     )
+    const hasTeamAttendance = attendances.some(
+      (a) => a.event === id && a.type === 'team' && a.present,
+    )
 
-    if (!hasSeedAttendance && eventSeeds.length > 0) {
+    if (
+      (eventSeeds.length > 0 && !hasSeedAttendance) ||
+      (eventTeamMembers.length > 0 && !hasTeamAttendance)
+    ) {
       toast({
         title: 'Atenção',
-        description: 'Registre pelo menos uma presença de Seed antes de concluir o evento.',
+        description:
+          'Registre pelo menos uma presença de Seed e de Equipe antes de concluir o evento.',
         variant: 'destructive',
       })
       return

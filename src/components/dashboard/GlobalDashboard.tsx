@@ -332,6 +332,7 @@ export function GlobalDashboard() {
                     <TableHead>Igreja</TableHead>
                     <TableHead className="text-right">Total de Seeds</TableHead>
                     <TableHead className="text-right">Equipe</TableHead>
+                    <TableHead className="text-right">Proporção</TableHead>
                     <TableHead className="w-[80px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -341,6 +342,12 @@ export function GlobalDashboard() {
                       <TableCell className="font-medium">{stat.name}</TableCell>
                       <TableCell className="text-right">{stat.totalSeeds}</TableCell>
                       <TableCell className="text-right">{stat.teamCount}</TableCell>
+                      <TableCell className="text-right">
+                        {stat.teamCount > 0
+                          ? (stat.totalSeeds / stat.teamCount).toFixed(1)
+                          : stat.totalSeeds}
+                        :1
+                      </TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
