@@ -1,15 +1,23 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useChurch } from '@/contexts/church-context'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Church, LogOut } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export default function SelectChurch() {
   const { availableChurches, setCurrentChurch, loadingChurches } = useChurch()
   const { signOut } = useAuth()
   const navigate = useNavigate()
+  const [selectedChurchId, setSelectedChurchId] = useState<string>('')
 
   useEffect(() => {
     if (!loadingChurches && availableChurches.length === 1) {
@@ -18,9 +26,12 @@ export default function SelectChurch() {
     }
   }, [availableChurches, loadingChurches, navigate, setCurrentChurch])
 
-  const handleSelect = (church: any) => {
-    setCurrentChurch(church)
-    navigate('/', { replace: true })
+  const handleContinue = () => {
+    const church = availableChurches.find((c) => c.id === selectedChurchId)
+    if (church) {
+      setCurrentChurch(church)
+      navigate('/', { replace: true })
+    }
   }
 
   if (loadingChurches) {
@@ -57,23 +68,35 @@ export default function SelectChurch() {
           <CardTitle className="text-2xl">Selecionar Igreja</CardTitle>
           <CardDescription>Escolha o contexto que deseja acessar</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3">
-            {availableChurches.map((church) => (
-              <Button
-                key={church.id}
-                variant="outline"
-                className="h-auto py-4 justify-start text-left hover:border-primary/50 hover:bg-primary/5 transition-all"
-                onClick={() => handleSelect(church)}
-              >
-                <div className="flex flex-col gap-1">
-                  <span className="font-semibold text-base">{church.name}</span>
-                  <span className="text-xs text-muted-foreground font-mono">ID: {church.id}</span>
-                </div>
-              </Button>
-            ))}
-          </div>
-          <div className="pt-4 border-t text-center mt-2">
+        <CardContent>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleContinue()
+            }}
+            className="space-y-6"
+          >
+            <div className="space-y-2">
+              <Select value={selectedChurchId} onValueChange={setSelectedChurchId} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma igreja..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableChurches.map((church) => (
+                    <SelectItem key={church.id} value={church.id}>
+                      {church.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button type="submit" className="w-full" disabled={!selectedChurchId}>
+              Continuar
+            </Button>
+          </form>
+
+          <div className="pt-4 mt-6 border-t text-center">
             <Button
               variant="ghost"
               size="sm"
