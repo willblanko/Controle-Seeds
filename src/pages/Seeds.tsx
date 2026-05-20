@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react'
 import { Plus, Search, Pencil } from 'lucide-react'
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
+import pb from '@/lib/pocketbase/client'
 
 import { useApp, Seed } from '@/contexts/app-context'
 import { useChurch } from '@/contexts/church-context'
@@ -56,6 +58,7 @@ import {
 
 const seedSchema = z
   .object({
+    church: z.string().min(1, 'Igreja é obrigatória'),
     name: z.string().min(1, 'Nome é obrigatório'),
     photo: z.any().optional(),
     entryMethod: z.enum(['Kids 4', 'Novo Membro', 'Convidado por Membro'], {
@@ -97,6 +100,19 @@ const seedSchema = z
     { message: 'Especifique a medicação', path: ['medicationDetails'] },
   )
 
+function calculateAge(dateStr: string) {
+  if (!dateStr) return '-'
+  const birth = new Date(dateStr + (dateStr.includes('T') ? '' : 'T12:00:00Z'))
+  if (isNaN(birth.getTime())) return '-'
+  const today = new Date()
+  let age = today.getFullYear() - birth.getFullYear()
+  const m = today.getMonth() - birth.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+    age--
+  }
+  return age.toString()
+}
+
 export default function Seeds() {
   const { seeds, addSeed, updateSeed } = useApp()
   const { currentChurch } = useChurch()
@@ -110,6 +126,11 @@ export default function Seeds() {
   const [editingSeedId, setEditingSeedId] = useState<string | null>(null)
 
   const [quickFilter, setQuickFilter] = useState<string>('all')
+  const [churches, setChurches] = useState<any[]>([])
+
+  useEffect(() => {
+    pb.collection('churches').getFullList({ sort: 'name' }).then(setChurches).catch(console.error)
+  }, [])
 
   const allAllergies = useMemo(
     () =>
@@ -135,6 +156,7 @@ export default function Seeds() {
   const form = useForm<z.infer<typeof seedSchema>>({
     resolver: zodResolver(seedSchema),
     defaultValues: {
+      church: '',
       name: '',
       entryMethod: undefined as any,
       sex: undefined as any,
@@ -196,6 +218,7 @@ export default function Seeds() {
     setSheetMode('create')
     setEditingSeedId(null)
     form.reset({
+      church: currentChurch?.id || '',
       name: '',
       entryMethod: undefined as any,
       sex: undefined as any,
@@ -218,6 +241,7 @@ export default function Seeds() {
     setEditingSeedId(seed.id)
     setSelectedSeed(null)
     form.reset({
+      church: seed.church || '',
       name: seed.name,
       photo: '', // File input cannot be programmatically populated with URL easily
       entryMethod: seed.entryMethod as any,
@@ -242,16 +266,8 @@ export default function Seeds() {
         data.photo ||
         `https://img.usecurling.com/ppl/thumbnail?gender=${data.sex === 'Feminino' ? 'female' : 'male'}&seed=${Math.random().toString().substring(2, 6)}`
 
-      if (!currentChurch) {
-        toast({
-          title: 'Erro',
-          description: 'Selecione uma igreja no menu lateral para cadastrar.',
-          variant: 'destructive',
-        })
-        return
-      }
-
       await addSeed({
+        church: data.church,
         name: data.name,
         photo: generatedPhoto,
         entryMethod: data.entryMethod,
@@ -273,6 +289,7 @@ export default function Seeds() {
       })
     } else if (editingSeedId) {
       await updateSeed(editingSeedId, {
+        church: data.church,
         name: data.name,
         ...(data.photo ? { photo: data.photo } : {}),
         entryMethod: data.entryMethod,
@@ -339,6 +356,30 @@ export default function Seeds() {
                     Dados Pessoais
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="church"
+                      render={({ field }) => (
+                        <FormItem className="sm:col-span-2">
+                          <FormLabel>Igreja*</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione uma igreja" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {churches.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <FormField
                       control={form.control}
                       name="name"
@@ -674,6 +715,7 @@ export default function Seeds() {
           <TableHeader>
             <TableRow className="bg-muted/30">
               <TableHead>Nome</TableHead>
+              <TableHead className="hidden md:table-cell">Idade</TableHead>
               <TableHead className="hidden md:table-cell">Ingresso</TableHead>
               <TableHead className="hidden sm:table-cell">Contato Principal</TableHead>
               <TableHead>Status</TableHead>
@@ -683,7 +725,7 @@ export default function Seeds() {
           <TableBody>
             {filteredSeeds.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   Nenhum seed encontrado.
                 </TableCell>
               </TableRow>
@@ -702,6 +744,9 @@ export default function Seeds() {
                       </Avatar>
                       <span className="font-medium">{seed.name}</span>
                     </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell text-muted-foreground">
+                    {calculateAge(seed.birthDate)}
                   </TableCell>
                   <TableCell className="hidden md:table-cell text-muted-foreground">
                     {seed.entryMethod}
@@ -782,7 +827,8 @@ export default function Seeds() {
                 <div className="flex flex-col gap-1">
                   <span className="text-muted-foreground">Data de Nascimento</span>
                   <span className="font-medium">
-                    {new Date(selectedSeed.birthDate + 'T12:00:00Z').toLocaleDateString('pt-BR')}
+                    {new Date(selectedSeed.birthDate + 'T12:00:00Z').toLocaleDateString('pt-BR')} (
+                    {calculateAge(selectedSeed.birthDate)} anos)
                   </span>
                 </div>
                 <div className="flex flex-col gap-1">
