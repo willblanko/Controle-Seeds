@@ -113,7 +113,7 @@ function calculateAge(dateStr: string) {
 }
 
 export default function Seeds() {
-  const { seeds, addSeed, updateSeed } = useApp()
+  const { seeds, events, attendances, addSeed, updateSeed } = useApp()
   const { currentChurch } = useChurch()
   const { user } = useAuth()
   const { toast } = useToast()
@@ -886,6 +886,65 @@ export default function Seeds() {
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="col-span-2 grid grid-cols-2 gap-4 bg-primary/5 p-4 rounded-lg border border-primary/20">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">
+                      Presenças ({new Date().getFullYear()})
+                    </span>
+                    <span className="font-bold text-2xl text-green-600">
+                      {
+                        attendances.filter(
+                          (a) =>
+                            a.seed === selectedSeed.id &&
+                            a.type === 'seed' &&
+                            a.present &&
+                            events.find(
+                              (e) =>
+                                e.id === a.event &&
+                                new Date(e.date).getFullYear() === new Date().getFullYear(),
+                            ),
+                        ).length
+                      }
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">
+                      Faltas ({new Date().getFullYear()})
+                    </span>
+                    <span className="font-bold text-2xl text-red-500">
+                      {
+                        events
+                          .filter((e) => {
+                            const isPastOrCompleted =
+                              e.completed || e.date < new Date().toISOString().split('T')[0]
+                            const isCurrentYear =
+                              new Date(e.date).getFullYear() === new Date().getFullYear()
+                            if (!isPastOrCompleted || !isCurrentYear) return false
+                            const isGlobalEvent =
+                              !e.church || e.category === 'Camp' || e.category === 'Connection'
+                            const validChurchIds = isGlobalEvent
+                              ? churches.map((c) => c.id)
+                              : ([e.church].filter(Boolean) as string[])
+                            if (!isGlobalEvent) {
+                              const guestIds = churches
+                                .filter((c) => (c as any).event_host === e.church)
+                                .map((c) => c.id)
+                              validChurchIds.push(...guestIds)
+                            }
+                            return validChurchIds.includes(selectedSeed.church)
+                          })
+                          .filter((e) => {
+                            const att = attendances.find(
+                              (a) =>
+                                a.event === e.id && a.seed === selectedSeed.id && a.type === 'seed',
+                            )
+                            return !att || !att.present
+                          }).length
+                      }
+                    </span>
+                  </div>
+                </div>
+
                 <div className="col-span-2 flex flex-col gap-1">
                   <span className="text-muted-foreground">Igreja</span>
                   <span className="font-medium">

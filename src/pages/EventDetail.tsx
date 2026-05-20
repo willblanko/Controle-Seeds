@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   MapPin,
@@ -10,6 +10,7 @@ import {
   Upload,
   X,
   ImageIcon,
+  Trash2,
 } from 'lucide-react'
 
 import { useApp } from '@/contexts/app-context'
@@ -41,6 +42,7 @@ export default function EventDetail() {
   const { availableChurches, currentChurch } = useChurch()
   const { user } = useAuth()
   const { toast } = useToast()
+  const navigate = useNavigate()
 
   const [isCompleting, setIsCompleting] = useState(false)
   const [mediaFiles, setMediaFiles] = useState<any[]>([])
@@ -134,6 +136,20 @@ export default function EventDetail() {
     }
   }
 
+  const handleDeleteEvent = async () => {
+    try {
+      await pb.collection('events').delete(event.id)
+      toast({ title: 'Sucesso', description: 'Evento excluído com sucesso!' })
+      navigate('/eventos')
+    } catch (e) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir o evento.',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const handleUploadMedia = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
     const files = Array.from(e.target.files)
@@ -219,6 +235,12 @@ export default function EventDetail() {
               <span className="flex items-center gap-1.5">
                 <CalendarDays className="h-4 w-4 text-primary" />{' '}
                 {new Date(event.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                {event.endDate && event.category === 'Camp' && (
+                  <>
+                    <span className="text-muted-foreground mx-1">até</span>
+                    {new Date(event.endDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                  </>
+                )}
               </span>
               <span className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4 text-primary" /> {event.time}
@@ -240,6 +262,33 @@ export default function EventDetail() {
                 <CheckCircle className="mr-2 h-4 w-4" />{' '}
                 {isCompleting ? 'Concluindo...' : 'Concluir Evento'}
               </Button>
+            )}
+            {user?.role === 'admin' && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="shrink-0">
+                    <Trash2 className="mr-2 h-4 w-4" /> Excluir Evento
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir Evento?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação é irreversível. O evento e todas as presenças registradas serão
+                      apagados permanentemente.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteEvent}
+                      className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                    >
+                      Sim, excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
         </div>

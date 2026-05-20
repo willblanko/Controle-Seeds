@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-20T21:30:58.908Z",
+  "generatedAt": "2026-05-20T21:38:22.104Z",
   "collections": [
     {
       "name": "users",
@@ -426,6 +426,12 @@
           "type": "file",
           "required": false,
           "system": false
+        },
+        {
+          "name": "endDate",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_events_church ON events (church)"]
@@ -493,7 +499,8 @@
       "indexes": [
         "CREATE INDEX idx_attendances_event ON attendances (event)",
         "CREATE UNIQUE INDEX idx_attendances_unique_seed ON attendances (event, seed) WHERE seed != ''",
-        "CREATE UNIQUE INDEX idx_attendances_unique_team ON attendances (event, team_member) WHERE team_member != ''"
+        "CREATE UNIQUE INDEX idx_attendances_unique_team ON attendances (event, team_member) WHERE team_member != ''",
+        "CREATE INDEX `idx_attendances_seed_event` ON `attendances` (seed, event)"
       ]
     }
   ]
