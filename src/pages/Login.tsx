@@ -9,11 +9,9 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
   CardFooter,
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Sprout } from 'lucide-react'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -44,14 +42,19 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-sm shadow-xl border-border/50">
-        <CardHeader className="text-center space-y-2 pb-6">
-          <div className="mx-auto w-12 h-12 bg-primary text-primary-foreground rounded-xl flex items-center justify-center mb-2 shadow-sm">
-            <Sprout className="w-7 h-7" />
+        <CardHeader className="text-center space-y-4 pb-6">
+          <div className="mx-auto flex justify-center w-full max-w-[240px] mb-2">
+            <img
+              src="/logo.png"
+              alt="Seeds Logo"
+              className="h-20 sm:h-24 w-auto object-contain transition-all duration-300 hover:scale-105"
+              onError={(e) => {
+                e.currentTarget.src = 'https://img.usecurling.com/i?q=seed&shape=fill&color=spring-green'
+              }}
+            />
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">Controle Seeds</CardTitle>
           <CardDescription>Entre com suas credenciais para acessar o sistema</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
+        </CardHeader>        <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             {error && (
               <div className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-950/50 rounded-md border border-red-200 dark:border-red-900">

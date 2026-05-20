@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-20T18:14:23.940Z",
+  "generatedAt": "2026-05-20T18:38:29.170Z",
   "collections": [
     {
       "name": "users",
@@ -29,21 +29,29 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "role",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["admin", "user"]
+          "selectValues": [
+            "admin",
+            "user"
+          ]
         }
       ],
       "indexes": [
@@ -73,14 +81,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "address",
@@ -128,17 +141,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE UNIQUE INDEX idx_church_users_unique ON church_users (user, church)"]
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_church_users_unique ON church_users (user, church)"
+      ]
     },
     {
       "name": "seeds",
@@ -175,14 +195,22 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Kids 4", "Novo Membro", "Convidado por Membro"]
+          "selectValues": [
+            "Kids 4",
+            "Novo Membro",
+            "Convidado por Membro"
+          ]
         },
         {
           "name": "sex",
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Masculino", "Feminino", "Outro"]
+          "selectValues": [
+            "Masculino",
+            "Feminino",
+            "Outro"
+          ]
         },
         {
           "name": "birthDate",
@@ -249,7 +277,10 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Ativo", "Inativo"]
+          "selectValues": [
+            "Ativo",
+            "Inativo"
+          ]
         },
         {
           "name": "registrationDate",
@@ -262,17 +293,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_seeds_church ON seeds (church)"]
+      "indexes": [
+        "CREATE INDEX idx_seeds_church ON seeds (church)"
+      ]
     },
     {
       "name": "team_members",
@@ -321,14 +359,20 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Líder", "Membro"]
+          "selectValues": [
+            "Líder",
+            "Membro"
+          ]
         },
         {
           "name": "sex",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Masculino", "Feminino"]
+          "selectValues": [
+            "Masculino",
+            "Feminino"
+          ]
         },
         {
           "name": "courses",
@@ -341,17 +385,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_team_members_church ON team_members (church)"]
+      "indexes": [
+        "CREATE INDEX idx_team_members_church ON team_members (church)"
+      ]
     },
     {
       "name": "events",
@@ -412,17 +463,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_events_church ON events (church)"]
+      "indexes": [
+        "CREATE INDEX idx_events_church ON events (church)"
+      ]
     },
     {
       "name": "attendances",
@@ -461,7 +519,10 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["seed", "team"]
+          "selectValues": [
+            "seed",
+            "team"
+          ]
         },
         {
           "name": "present",
@@ -474,14 +535,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
