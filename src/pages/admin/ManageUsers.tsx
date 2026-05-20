@@ -30,6 +30,16 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { extractFieldErrors } from '@/lib/pocketbase/errors'
 
 export default function ManageUsers() {
@@ -38,6 +48,7 @@ export default function ManageUsers() {
   const [churchUsers, setChurchUsers] = useState<any[]>([])
   const [open, setOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any | null>(null)
+  const [userToDelete, setUserToDelete] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'user' })
   const [selectedChurches, setSelectedChurches] = useState<string[]>([])
@@ -150,17 +161,16 @@ export default function ManageUsers() {
     }
   }
 
-  const handleDeleteUser = async (id: string) => {
-    if (
-      !confirm('Tem certeza que deseja remover este usuário? Todas as associações serão perdidas.')
-    )
-      return
+  const confirmDelete = async () => {
+    if (!userToDelete) return
     try {
-      await pb.collection('users').delete(id)
-      toast({ title: 'Sucesso', description: 'Usuário removido.' })
+      await pb.collection('users').delete(userToDelete)
+      toast({ title: 'Sucesso', description: 'Usuário removido com sucesso.' })
       loadData()
     } catch (err) {
       toast({ title: 'Erro', description: 'Falha ao remover usuário.', variant: 'destructive' })
+    } finally {
+      setUserToDelete(null)
     }
   }
 
@@ -229,7 +239,7 @@ export default function ManageUsers() {
                       <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(u)}>
                         <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(u.id)}>
+                      <Button variant="ghost" size="icon" onClick={() => setUserToDelete(u.id)}>
                         <Trash2 className="h-4 w-4 text-destructive/80 hover:text-destructive" />
                       </Button>
                     </div>
@@ -247,6 +257,30 @@ export default function ManageUsers() {
           </TableBody>
         </Table>
       </div>
+
+      <AlertDialog
+        open={!!userToDelete}
+        onOpenChange={(isOpen) => !isOpen && setUserToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover este usuário? Esta ação não pode ser desfeita e todas
+              as associações serão perdidas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
