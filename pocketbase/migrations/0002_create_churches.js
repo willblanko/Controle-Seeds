@@ -3,8 +3,8 @@ migrate(
     const collection = new Collection({
       name: 'churches',
       type: 'base',
-      listRule: "@request.auth.role = 'admin' || church_users_via_church.user ?= @request.auth.id",
-      viewRule: "@request.auth.role = 'admin' || church_users_via_church.user ?= @request.auth.id",
+      listRule: "@request.auth.role = 'admin'",
+      viewRule: "@request.auth.role = 'admin'",
       createRule: "@request.auth.role = 'admin'",
       updateRule: "@request.auth.role = 'admin'",
       deleteRule: "@request.auth.role = 'admin'",

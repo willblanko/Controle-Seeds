@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-20T15:22:10.551Z",
+  "generatedAt": "2026-05-20T15:30:27.627Z",
   "collections": [
     {
       "name": "users",
       "type": "auth",
       "apiRules": {
-        "list": "id = @request.auth.id",
-        "view": "id = @request.auth.id",
+        "list": "id = @request.auth.id || @request.auth.role = 'admin'",
+        "view": "id = @request.auth.id || @request.auth.role = 'admin'",
         "create": "",
         "update": "id = @request.auth.id",
         "delete": "id = @request.auth.id"
@@ -37,11 +37,444 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["admin", "user"]
         }
       ],
       "indexes": [
         "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
         "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
+      ]
+    },
+    {
+      "name": "churches",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'admin' || church_users_via_church.user ?= @request.auth.id",
+        "view": "@request.auth.role = 'admin' || church_users_via_church.user ?= @request.auth.id",
+        "create": "@request.auth.role = 'admin'",
+        "update": "@request.auth.role = 'admin'",
+        "delete": "@request.auth.role = 'admin'"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "church_users",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'admin' || user = @request.auth.id",
+        "view": "@request.auth.role = 'admin' || user = @request.auth.id",
+        "create": "@request.auth.role = 'admin'",
+        "update": "@request.auth.role = 'admin'",
+        "delete": "@request.auth.role = 'admin'"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "church",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "churches"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_church_users_unique ON church_users (user, church)"]
+    },
+    {
+      "name": "seeds",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
+        "view": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
+        "create": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
+        "update": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
+        "delete": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "church",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "churches"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "photo",
+          "type": "url",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "entryMethod",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Kids 4", "Novo Membro", "Convidado por Membro"]
+        },
+        {
+          "name": "sex",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Masculino", "Feminino", "Outro"]
+        },
+        {
+          "name": "birthDate",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "guardian1",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "guardian2",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "phone1",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "phone2",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hasAllergy",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "allergyDetails",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hasMedication",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "medicationDetails",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Ativo", "Inativo"]
+        },
+        {
+          "name": "registrationDate",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_seeds_church ON seeds (church)"]
+    },
+    {
+      "name": "team_members",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
+        "view": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
+        "create": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
+        "update": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
+        "delete": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "church",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "churches"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "photoUrl",
+          "type": "url",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dateOfBirth",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Líder", "Membro"]
+        },
+        {
+          "name": "sex",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Masculino", "Feminino"]
+        },
+        {
+          "name": "courses",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_team_members_church ON team_members (church)"]
+    },
+    {
+      "name": "events",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
+        "view": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
+        "create": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
+        "update": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id",
+        "delete": "@request.auth.role = 'admin' || church.church_users_via_church.user ?= @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "church",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "churches"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "date",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "time",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "location",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_events_church ON events (church)"]
+    },
+    {
+      "name": "attendances",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.role = 'admin' || event.church.church_users_via_church.user ?= @request.auth.id",
+        "view": "@request.auth.role = 'admin' || event.church.church_users_via_church.user ?= @request.auth.id",
+        "create": "@request.auth.role = 'admin' || event.church.church_users_via_church.user ?= @request.auth.id",
+        "update": "@request.auth.role = 'admin' || event.church.church_users_via_church.user ?= @request.auth.id",
+        "delete": "@request.auth.role = 'admin' || event.church.church_users_via_church.user ?= @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "event",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "events"
+        },
+        {
+          "name": "seed",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "seeds"
+        },
+        {
+          "name": "team_member",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "team_members"
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["seed", "team"]
+        },
+        {
+          "name": "present",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_attendances_event ON attendances (event)",
+        "CREATE UNIQUE INDEX idx_attendances_unique_seed ON attendances (event, seed) WHERE seed != ''",
+        "CREATE UNIQUE INDEX idx_attendances_unique_team ON attendances (event, team_member) WHERE team_member != ''"
       ]
     }
   ]

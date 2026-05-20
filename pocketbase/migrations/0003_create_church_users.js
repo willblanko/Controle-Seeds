@@ -32,9 +32,22 @@ migrate(
       indexes: ['CREATE UNIQUE INDEX idx_church_users_unique ON church_users (user, church)'],
     })
     app.save(collection)
+
+    churches.listRule =
+      "@request.auth.role = 'admin' || church_users_via_church.user ?= @request.auth.id"
+    churches.viewRule =
+      "@request.auth.role = 'admin' || church_users_via_church.user ?= @request.auth.id"
+    app.save(churches)
   },
   (app) => {
     const collection = app.findCollectionByNameOrId('church_users')
     app.delete(collection)
+
+    try {
+      const churches = app.findCollectionByNameOrId('churches')
+      churches.listRule = "@request.auth.role = 'admin'"
+      churches.viewRule = "@request.auth.role = 'admin'"
+      app.save(churches)
+    } catch (_) {}
   },
 )
