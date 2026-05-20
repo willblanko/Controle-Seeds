@@ -1,6 +1,5 @@
-import { useState, useMemo } from 'react'
-import { Plus, Search, Pencil } from 'lucide-react'
-import { useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
+import { Plus, Search, Pencil, Upload } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -153,6 +152,8 @@ export default function Seeds() {
     [seeds],
   )
 
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   const form = useForm<z.infer<typeof seedSchema>>({
     resolver: zodResolver(seedSchema),
     defaultValues: {
@@ -174,8 +175,7 @@ export default function Seeds() {
   })
 
   const filteredSeeds = seeds.filter((s) => {
-    const matchChurch =
-      user?.role === 'admin' && !currentChurch ? true : s.church === currentChurch?.id
+    const matchChurch = !currentChurch ? true : s.church === currentChurch?.id
     if (!matchChurch) return false
 
     const matchSearch =
@@ -207,6 +207,70 @@ export default function Seeds() {
 
     return matchSearch && matchFilter
   })
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      const text = e.target?.result as string
+      if (!text) return
+
+      const lines = text.split('\n').filter((line) => line.trim())
+      if (lines.length <= 1) {
+        toast({
+          title: 'Erro na importação',
+          description: 'O arquivo CSV está vazio ou inválido.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      let imported = 0
+      let failed = 0
+
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',').map((c) => c.trim())
+        if (cols.length < 2) continue
+
+        const name = cols[0] || 'Sem Nome'
+        const churchId = currentChurch?.id || churches[0]?.id
+
+        if (!churchId) {
+          failed++
+          continue
+        }
+
+        try {
+          await pb.collection('seeds').create({
+            church: churchId,
+            name: name,
+            entryMethod: 'Novo Membro',
+            sex: 'Masculino',
+            birthDate: new Date().toISOString().split('T')[0],
+            guardian1: cols[1] || 'Responsável',
+            phone1: cols[2] || '000000000',
+            hasAllergy: false,
+            hasMedication: false,
+          })
+          imported++
+        } catch (err) {
+          failed++
+        }
+      }
+
+      toast({
+        title: 'Importação Concluída',
+        description: `${imported} seeds importados com sucesso. ${failed > 0 ? `(${failed} falhas)` : ''}`,
+      })
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+    reader.readAsText(file)
+  }
 
   function handleOpenCreate() {
     setSheetMode('create')
@@ -324,80 +388,355 @@ export default function Seeds() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Diretório de Seeds</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Cadastro</h2>
           <p className="text-muted-foreground">Gerencie os Seeds cadastrados no sistema.</p>
         </div>
 
-        <Sheet open={openNew} onOpenChange={setOpenNew}>
-          <Button className="shrink-0" onClick={handleOpenCreate}>
-            <Plus className="mr-2 h-4 w-4" /> Novo Seed
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="file"
+            accept=".csv"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+          />
+          <Button
+            variant="outline"
+            className="shrink-0"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="mr-2 h-4 w-4" /> Importar Tabela
           </Button>
-          <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
-            <SheetHeader className="mb-6">
-              <SheetTitle>
-                {sheetMode === 'create' ? 'Cadastrar Novo Seed' : 'Editar Seed'}
-              </SheetTitle>
-              <SheetDescription>
-                {sheetMode === 'create'
-                  ? 'Preencha os detalhes para registrar um novo Seed.'
-                  : 'Atualize as informações do Seed.'}
-              </SheetDescription>
-            </SheetHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-sm text-primary uppercase tracking-wider">
-                    Dados Pessoais
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="church"
-                      render={({ field }) => (
-                        <FormItem className="sm:col-span-2">
-                          <FormLabel>Igreja*</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+          <Sheet open={openNew} onOpenChange={setOpenNew}>
+            <SheetTrigger asChild>
+              <Button className="shrink-0" onClick={handleOpenCreate}>
+                <Plus className="mr-2 h-4 w-4" /> Novo Seed
+              </Button>
+            </SheetTrigger>
+            <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+              <SheetHeader className="mb-6">
+                <SheetTitle>
+                  {sheetMode === 'create' ? 'Cadastrar Novo Seed' : 'Editar Seed'}
+                </SheetTitle>
+                <SheetDescription>
+                  {sheetMode === 'create'
+                    ? 'Preencha os detalhes para registrar um novo Seed.'
+                    : 'Atualize as informações do Seed.'}
+                </SheetDescription>
+              </SheetHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-sm text-primary uppercase tracking-wider">
+                      Dados Pessoais
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="church"
+                        render={({ field }) => (
+                          <FormItem className="sm:col-span-2">
+                            <FormLabel>Igreja*</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione uma igreja" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {churches.map((c) => (
+                                  <SelectItem key={c.id} value={c.id}>
+                                    {c.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem className="sm:col-span-2">
+                            <FormLabel>Nome Completo*</FormLabel>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione uma igreja" />
-                              </SelectTrigger>
+                              <Input placeholder="Ex: João da Silva" {...field} />
                             </FormControl>
-                            <SelectContent>
-                              {churches.map((c) => (
-                                <SelectItem key={c.id} value={c.id}>
-                                  {c.name}
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="photo"
+                        render={({ field: { value, onChange, ...field } }) => (
+                          <FormItem>
+                            <FormLabel>Foto</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => onChange(e.target.value)}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="birthDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Data de Nascimento*</FormLabel>
+                            <FormControl>
+                              <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="entryMethod"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Forma de Ingresso*</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="Kids 4">Kids 4</SelectItem>
+                                <SelectItem value="Novo Membro">Novo Membro</SelectItem>
+                                <SelectItem value="Convidado por Membro">
+                                  Convidado por Membro
                                 </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="sex"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Sexo*</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="Masculino">Masculino</SelectItem>
+                                <SelectItem value="Feminino">Feminino</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-sm text-primary uppercase tracking-wider">
+                      Contato & Responsáveis
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="guardian1"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Responsável 1</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Nome completo" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="phone1"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Telefone 1</FormLabel>
+                            <FormControl>
+                              <Input placeholder="(11) 99999-9999" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="guardian2"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Responsável 2</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Nome completo" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="phone2"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Telefone 2</FormLabel>
+                            <FormControl>
+                              <Input placeholder="(11) 99999-9999" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 bg-muted/30 p-4 rounded-lg border">
+                    <h3 className="font-semibold text-sm text-primary uppercase tracking-wider">
+                      Dados Médicos
+                    </h3>
+                    <div className="grid gap-6">
+                      <div className="space-y-3">
+                        <FormField
+                          control={form.control}
+                          name="hasAllergy"
+                          render={({ field }) => (
+                            <FormItem className="space-y-3">
+                              <FormLabel>Possui alguma alergia?</FormLabel>
+                              <FormControl>
+                                <RadioGroup
+                                  onValueChange={field.onChange}
+                                  defaultValue={field.value}
+                                  className="flex space-x-4"
+                                >
+                                  <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormControl>
+                                      <RadioGroupItem value="yes" />
+                                    </FormControl>
+                                    <FormLabel className="font-normal cursor-pointer">
+                                      Sim
+                                    </FormLabel>
+                                  </FormItem>
+                                  <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormControl>
+                                      <RadioGroupItem value="no" />
+                                    </FormControl>
+                                    <FormLabel className="font-normal cursor-pointer">
+                                      Não
+                                    </FormLabel>
+                                  </FormItem>
+                                </RadioGroup>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        {form.watch('hasAllergy') === 'yes' && (
+                          <FormField
+                            control={form.control}
+                            name="allergyDetails"
+                            render={({ field }) => (
+                              <FormItem className="animate-fade-in-up">
+                                <FormLabel>Qual alergia?</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    list="allergies-list"
+                                    placeholder="Ex: Amendoim, Poeira..."
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                      </div>
+
+                      <div className="space-y-3">
+                        <FormField
+                          control={form.control}
+                          name="hasMedication"
+                          render={({ field }) => (
+                            <FormItem className="space-y-3">
+                              <FormLabel>Toma medicação contínua?</FormLabel>
+                              <FormControl>
+                                <RadioGroup
+                                  onValueChange={field.onChange}
+                                  defaultValue={field.value}
+                                  className="flex space-x-4"
+                                >
+                                  <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormControl>
+                                      <RadioGroupItem value="yes" />
+                                    </FormControl>
+                                    <FormLabel className="font-normal cursor-pointer">
+                                      Sim
+                                    </FormLabel>
+                                  </FormItem>
+                                  <FormItem className="flex items-center space-x-2 space-y-0">
+                                    <FormControl>
+                                      <RadioGroupItem value="no" />
+                                    </FormControl>
+                                    <FormLabel className="font-normal cursor-pointer">
+                                      Não
+                                    </FormLabel>
+                                  </FormItem>
+                                </RadioGroup>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        {form.watch('hasMedication') === 'yes' && (
+                          <FormField
+                            control={form.control}
+                            name="medicationDetails"
+                            render={({ field }) => (
+                              <FormItem className="animate-fade-in-up">
+                                <FormLabel>Qual medicação?</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    list="medications-list"
+                                    placeholder="Ex: Ritalina..."
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
                     <FormField
                       control={form.control}
-                      name="name"
+                      name="notes"
                       render={({ field }) => (
-                        <FormItem className="sm:col-span-2">
-                          <FormLabel>Nome Completo*</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Ex: João da Silva" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="photo"
-                      render={({ field: { value, onChange, ...field } }) => (
                         <FormItem>
-                          <FormLabel>Foto</FormLabel>
+                          <FormLabel>Observações Gerais</FormLabel>
                           <FormControl>
-                            <Input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => onChange(e.target.value)}
+                            <Textarea
+                              placeholder="Qualquer detalhe importante..."
+                              className="resize-none"
                               {...field}
                             />
                           </FormControl>
@@ -405,265 +744,16 @@ export default function Seeds() {
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={form.control}
-                      name="birthDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Data de Nascimento*</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="entryMethod"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Forma de Ingresso*</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Kids 4">Kids 4</SelectItem>
-                              <SelectItem value="Novo Membro">Novo Membro</SelectItem>
-                              <SelectItem value="Convidado por Membro">
-                                Convidado por Membro
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="sex"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Sexo*</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Masculino">Masculino</SelectItem>
-                              <SelectItem value="Feminino">Feminino</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   </div>
-                </div>
 
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-sm text-primary uppercase tracking-wider">
-                    Contato & Responsáveis
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="guardian1"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Responsável 1</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Nome completo" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="phone1"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Telefone 1</FormLabel>
-                          <FormControl>
-                            <Input placeholder="(11) 99999-9999" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="guardian2"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Responsável 2</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Nome completo" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="phone2"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Telefone 2</FormLabel>
-                          <FormControl>
-                            <Input placeholder="(11) 99999-9999" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-4 bg-muted/30 p-4 rounded-lg border">
-                  <h3 className="font-semibold text-sm text-primary uppercase tracking-wider">
-                    Dados Médicos
-                  </h3>
-                  <div className="grid gap-6">
-                    <div className="space-y-3">
-                      <FormField
-                        control={form.control}
-                        name="hasAllergy"
-                        render={({ field }) => (
-                          <FormItem className="space-y-3">
-                            <FormLabel>Possui alguma alergia?</FormLabel>
-                            <FormControl>
-                              <RadioGroup
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                                className="flex space-x-4"
-                              >
-                                <FormItem className="flex items-center space-x-2 space-y-0">
-                                  <FormControl>
-                                    <RadioGroupItem value="yes" />
-                                  </FormControl>
-                                  <FormLabel className="font-normal cursor-pointer">Sim</FormLabel>
-                                </FormItem>
-                                <FormItem className="flex items-center space-x-2 space-y-0">
-                                  <FormControl>
-                                    <RadioGroupItem value="no" />
-                                  </FormControl>
-                                  <FormLabel className="font-normal cursor-pointer">Não</FormLabel>
-                                </FormItem>
-                              </RadioGroup>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      {form.watch('hasAllergy') === 'yes' && (
-                        <FormField
-                          control={form.control}
-                          name="allergyDetails"
-                          render={({ field }) => (
-                            <FormItem className="animate-fade-in-up">
-                              <FormLabel>Qual alergia?</FormLabel>
-                              <FormControl>
-                                <Input
-                                  list="allergies-list"
-                                  placeholder="Ex: Amendoim, Poeira..."
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      )}
-                    </div>
-
-                    <div className="space-y-3">
-                      <FormField
-                        control={form.control}
-                        name="hasMedication"
-                        render={({ field }) => (
-                          <FormItem className="space-y-3">
-                            <FormLabel>Toma medicação contínua?</FormLabel>
-                            <FormControl>
-                              <RadioGroup
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                                className="flex space-x-4"
-                              >
-                                <FormItem className="flex items-center space-x-2 space-y-0">
-                                  <FormControl>
-                                    <RadioGroupItem value="yes" />
-                                  </FormControl>
-                                  <FormLabel className="font-normal cursor-pointer">Sim</FormLabel>
-                                </FormItem>
-                                <FormItem className="flex items-center space-x-2 space-y-0">
-                                  <FormControl>
-                                    <RadioGroupItem value="no" />
-                                  </FormControl>
-                                  <FormLabel className="font-normal cursor-pointer">Não</FormLabel>
-                                </FormItem>
-                              </RadioGroup>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      {form.watch('hasMedication') === 'yes' && (
-                        <FormField
-                          control={form.control}
-                          name="medicationDetails"
-                          render={({ field }) => (
-                            <FormItem className="animate-fade-in-up">
-                              <FormLabel>Qual medicação?</FormLabel>
-                              <FormControl>
-                                <Input
-                                  list="medications-list"
-                                  placeholder="Ex: Ritalina..."
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="notes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Observações Gerais</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Qualquer detalhe importante..."
-                            className="resize-none"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <Button type="submit" className="w-full">
-                  {sheetMode === 'create' ? 'Salvar Cadastro' : 'Salvar Alterações'}
-                </Button>
-              </form>
-            </Form>
-          </SheetContent>
-        </Sheet>
+                  <Button type="submit" className="w-full">
+                    {sheetMode === 'create' ? 'Salvar Cadastro' : 'Salvar Alterações'}
+                  </Button>
+                </form>
+              </Form>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
 
       <div className="space-y-4">

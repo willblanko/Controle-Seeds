@@ -70,7 +70,7 @@ export function GlobalDashboard() {
   const nowString = useMemo(() => new Date().toISOString().split('T')[0], [])
 
   // Global Metrics
-  const activeSeeds = useMemo(() => seeds.filter((s) => s.status === 'Ativo').length, [seeds])
+  const totalSeeds = seeds.length
   const totalTeam = teamMembers.length
   const activeEvents = useMemo(
     () => events.filter((e) => e.date >= nowString).length,
@@ -100,8 +100,7 @@ export function GlobalDashboard() {
 
   const growthData = useMemo(() => {
     const months = {} as Record<string, number>
-    const activeSeedsList = seeds.filter((s) => s.status === 'Ativo')
-    const sorted = [...activeSeedsList].sort(
+    const sorted = [...seeds].sort(
       (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime(),
     )
 
@@ -127,13 +126,11 @@ export function GlobalDashboard() {
   const churchStats = useMemo(() => {
     return availableChurches
       .map((church) => {
-        const churchSeeds = seeds.filter(
-          (s) => s.church === church.id && s.status === 'Ativo',
-        ).length
+        const churchSeeds = seeds.filter((s) => s.church === church.id).length
         const churchTeam = teamMembers.filter((t) => t.church === church.id).length
-        return { ...church, activeSeeds: churchSeeds, teamCount: churchTeam }
+        return { ...church, totalSeeds: churchSeeds, teamCount: churchTeam }
       })
-      .sort((a, b) => b.activeSeeds - a.activeSeeds)
+      .sort((a, b) => b.totalSeeds - a.totalSeeds)
   }, [availableChurches, seeds, teamMembers])
 
   const recentSeeds = useMemo(
@@ -209,14 +206,12 @@ export function GlobalDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="hover:shadow-md transition-shadow bg-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Seeds Ativos</CardTitle>
+            <CardTitle className="text-sm font-medium">Total de Seeds</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeSeeds}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              De um total de {seeds.length} cadastrados
-            </p>
+            <div className="text-2xl font-bold">{totalSeeds}</div>
+            <p className="text-xs text-muted-foreground mt-1">Registros no sistema</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-md transition-shadow">
@@ -324,7 +319,7 @@ export function GlobalDashboard() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Igreja</TableHead>
-                    <TableHead className="text-right">Seeds Ativos</TableHead>
+                    <TableHead className="text-right">Total de Seeds</TableHead>
                     <TableHead className="text-right">Equipe</TableHead>
                     <TableHead className="w-[80px]"></TableHead>
                   </TableRow>
@@ -333,7 +328,7 @@ export function GlobalDashboard() {
                   {churchStats.map((stat) => (
                     <TableRow key={stat.id}>
                       <TableCell className="font-medium">{stat.name}</TableCell>
-                      <TableCell className="text-right">{stat.activeSeeds}</TableCell>
+                      <TableCell className="text-right">{stat.totalSeeds}</TableCell>
                       <TableCell className="text-right">{stat.teamCount}</TableCell>
                       <TableCell>
                         <Button

@@ -15,14 +15,14 @@ export function ChurchDashboard() {
   const filteredEvents = events.filter((e) => e.church === currentChurch?.id)
   const filteredAttendances = attendances
 
-  const activeSeeds = filteredSeeds.filter((s) => s.status === 'Ativo').length
+  const totalSeeds = filteredSeeds.length
   const nowString = new Date().toISOString().split('T')[0]
   const upcomingEvents = filteredEvents.filter((e) => e.date >= nowString)
   const pastEvents = filteredEvents
     .filter((e) => e.date < nowString)
     .sort((a, b) => a.date.localeCompare(b.date))
 
-  const totalPossible = pastEvents.length * activeSeeds
+  const totalPossible = pastEvents.length * totalSeeds
   const actuallyPresent = filteredAttendances.filter(
     (a) => a.present && a.type === 'seed' && pastEvents.find((e) => e.id === a.event),
   ).length
@@ -55,10 +55,10 @@ export function ChurchDashboard() {
 
       <div className="grid gap-4 md:grid-cols-3">
         <MetricCard
-          title="Total de Seeds Ativos"
+          title="Total de Seeds"
           icon={Users}
-          value={activeSeeds}
-          desc="Seeds matriculados"
+          value={totalSeeds}
+          desc="Seeds Cadastrados"
         />
         <MetricCard
           title="Próximos Eventos"
@@ -176,9 +176,7 @@ function RightSidebarCards({ seeds, pastEvents }: any) {
     .sort((a: any, b: any) => a.fourteenthBday.getTime() - b.fourteenthBday.getTime())
 
   const birthdaysThisMonth = seeds
-    .filter(
-      (s: any) => s.status === 'Ativo' && parseInt(s.birthDate.split('-')[1], 10) === currentMonth,
-    )
+    .filter((s: any) => parseInt(s.birthDate.split('-')[1], 10) === currentMonth)
     .sort(
       (a: any, b: any) =>
         parseInt(a.birthDate.split('-')[2], 10) - parseInt(b.birthDate.split('-')[2], 10),

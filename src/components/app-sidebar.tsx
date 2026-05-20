@@ -71,11 +71,9 @@ export function AppSidebar() {
                   <SelectValue placeholder="Selecione o contexto" />
                 </SelectTrigger>
                 <SelectContent>
-                  {user?.role === 'admin' && (
-                    <SelectItem value="all" className="text-xs font-semibold text-primary">
-                      Visão Global (Todas)
-                    </SelectItem>
-                  )}
+                  <SelectItem value="all" className="text-xs font-semibold text-primary">
+                    Visão Global (Todas)
+                  </SelectItem>
                   {availableChurches.map((c) => (
                     <SelectItem key={c.id} value={c.id} className="text-xs">
                       {c.name}
