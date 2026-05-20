@@ -7,8 +7,10 @@ import {
   Calendar,
   LineChart,
   Church,
+  UserCog,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
+import { useChurch } from '@/contexts/church-context'
 import {
   Sidebar,
   SidebarContent,
@@ -19,6 +21,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const items = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
@@ -31,10 +40,11 @@ const items = [
 export function AppSidebar() {
   const location = useLocation()
   const { user } = useAuth()
+  const { currentChurch, availableChurches, setCurrentChurch } = useChurch()
 
   return (
     <Sidebar>
-      <SidebarHeader className="h-16 flex items-center justify-center px-4 border-b border-border/50">
+      <SidebarHeader className="h-16 flex items-center justify-center px-4 border-b border-border/50 bg-background">
         <Link
           to="/"
           className="flex items-center gap-2 font-bold text-xl text-primary transition-transform hover:scale-105 w-full"
@@ -44,8 +54,39 @@ export function AppSidebar() {
         </Link>
       </SidebarHeader>
       <SidebarContent>
+        {availableChurches.length > 0 && (
+          <div className="px-4 py-3 border-b border-border/50 bg-muted/10 flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+              Igreja Atual
+            </span>
+            {availableChurches.length > 1 ? (
+              <Select
+                value={currentChurch?.id}
+                onValueChange={(val) =>
+                  setCurrentChurch(availableChurches.find((c) => c.id === val)!)
+                }
+              >
+                <SelectTrigger className="h-8 bg-background border-dashed text-xs shadow-none">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableChurches.map((c) => (
+                    <SelectItem key={c.id} value={c.id} className="text-xs">
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="text-sm font-semibold flex items-center gap-2 text-foreground/90">
+                <Church className="h-4 w-4 text-primary" />
+                <span className="truncate">{currentChurch?.name}</span>
+              </div>
+            )}
+          </div>
+        )}
         <SidebarGroup>
-          <SidebarGroupContent className="pt-4">
+          <SidebarGroupContent className="pt-2">
             <SidebarMenu>
               {items.map((item) => {
                 const isActive =
@@ -63,18 +104,32 @@ export function AppSidebar() {
                 )
               })}
               {user?.role === 'admin' && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname.startsWith('/admin/churches')}
-                    tooltip="Igrejas"
-                  >
-                    <Link to="/admin/churches">
-                      <Church />
-                      <span>Igrejas</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname.startsWith('/admin/users')}
+                      tooltip="Usuários"
+                    >
+                      <Link to="/admin/users">
+                        <UserCog />
+                        <span>Usuários</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname.startsWith('/admin/churches')}
+                      tooltip="Igrejas"
+                    >
+                      <Link to="/admin/churches">
+                        <Church />
+                        <span>Igrejas</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
               )}
             </SidebarMenu>
           </SidebarGroupContent>

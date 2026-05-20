@@ -17,6 +17,7 @@ import NotFound from './pages/NotFound'
 import Login from './pages/Login'
 import SelectChurch from './pages/SelectChurch'
 import ManageChurches from './pages/admin/ManageChurches'
+import ManageUsers from './pages/admin/ManageUsers'
 import PresenceDashboard from './pages/PresenceDashboard'
 
 const AuthWrapper = () => {
@@ -60,6 +61,7 @@ const App = () => (
                     <Route path="/dashboard-presenca" element={<PresenceDashboard />} />
                     <Route element={<AdminWrapper />}>
                       <Route path="/admin/churches" element={<ManageChurches />} />
+                      <Route path="/admin/users" element={<ManageUsers />} />
                     </Route>
                   </Route>
                 </Route>

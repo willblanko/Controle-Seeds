@@ -1,232 +1,141 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react'
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { useChurch } from './church-context'
 import { useRealtime } from '@/hooks/use-realtime'
-import { CourseStatus } from '@/types/team'
 
-export type Seed = {
+export interface Seed {
   id: string
-  church: string
   name: string
   photo?: string
-  entryMethod: 'Kids 4' | 'Novo Membro' | 'Convidado por Membro'
-  sex: 'Masculino' | 'Feminino' | 'Outro'
+  entryMethod: string
+  sex: string
   birthDate: string
   guardian1: string
   guardian2?: string
   phone1: string
   phone2?: string
-  hasAllergy: boolean
+  hasAllergy?: boolean
   allergyDetails?: string
-  hasMedication: boolean
+  hasMedication?: boolean
   medicationDetails?: string
   notes?: string
-  status: 'Ativo' | 'Inativo'
-  registrationDate: string
-}
-
-export type Event = {
-  id: string
-  church: string
-  title: string
-  description: string
-  date: string
-  time: string
-  location: string
-  category: string
-}
-
-export type Attendance = {
-  id: string
-  event: string
-  seed?: string
-  team_member?: string
-  type: 'seed' | 'team'
-  present: boolean
-}
-
-export interface CourseData {
-  status: CourseStatus
-  completionYear?: string
-}
-
-export type TeamMember = {
-  id: string
-  church: string
-  name: string
-  photoUrl: string
-  email: string
-  dateOfBirth: string
-  role: 'Líder' | 'Membro'
-  sex?: 'Masculino' | 'Feminino'
-  courses: {
-    cme: CourseData
-    ebm: CourseData
-    te: CourseData
-  }
+  status: string
+  registrationDate?: string
 }
 
 type AppContextType = {
   seeds: Seed[]
-  events: Event[]
-  attendances: Attendance[]
-  teamMembers: TeamMember[]
-  addSeed: (seed: Omit<Seed, 'id' | 'church' | 'registrationDate'>) => Promise<void>
-  updateSeed: (id: string, seed: Partial<Seed>) => Promise<void>
-  addEvent: (event: Omit<Event, 'id' | 'church'>) => Promise<void>
-  toggleAttendance: (eventId: string, participantId: string, type: 'seed' | 'team') => Promise<void>
-  addTeamMember: (member: Omit<TeamMember, 'id' | 'church'>) => Promise<void>
-  updateTeamMember: (id: string, member: Partial<TeamMember>) => Promise<void>
+  teamMembers: any[]
+  events: any[]
+  attendances: any[]
+  addSeed: (data: any) => Promise<void>
+  updateSeed: (id: string, data: any) => Promise<void>
+  addTeamMember: (data: any) => Promise<void>
+  updateTeamMember: (id: string, data: any) => Promise<void>
+  addEvent: (data: any) => Promise<void>
+  toggleAttendance: (eventId: string, personId: string, type: 'seed' | 'team') => Promise<void>
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const { currentChurch } = useChurch()
-
-  const [baseSeeds, setBaseSeeds] = useState<Seed[]>([])
-  const [events, setEvents] = useState<Event[]>([])
-  const [attendances, setAttendances] = useState<Attendance[]>([])
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+  const [seeds, setSeeds] = useState<Seed[]>([])
+  const [teamMembers, setTeamMembers] = useState<any[]>([])
+  const [events, setEvents] = useState<any[]>([])
+  const [attendances, setAttendances] = useState<any[]>([])
 
   const loadData = async () => {
-    if (!currentChurch) return
-    const filter = `church = "${currentChurch.id}"`
-    try {
-      const [s, e, tm] = await Promise.all([
-        pb.collection('seeds').getFullList<Seed>({ filter }),
-        pb.collection('events').getFullList<Event>({ filter }),
-        pb.collection('team_members').getFullList<TeamMember>({ filter }),
-      ])
-      setBaseSeeds(s)
-      setEvents(e)
-      setTeamMembers(tm)
-    } catch (err) {
-      console.error(err)
+    if (!currentChurch) {
+      setSeeds([])
+      setTeamMembers([])
+      setEvents([])
+      setAttendances([])
+      return
     }
-  }
-
-  const loadAttendances = async () => {
-    if (!currentChurch) return
     try {
-      const atts = await pb.collection('attendances').getFullList<Attendance>({
-        filter: `event.church = "${currentChurch.id}"`,
-      })
-      setAttendances(atts)
-    } catch (err) {
-      console.error(err)
+      const [s, tm, e, a] = await Promise.all([
+        pb.collection('seeds').getFullList<Seed>({ filter: `church = "${currentChurch.id}"` }),
+        pb.collection('team_members').getFullList({ filter: `church = "${currentChurch.id}"` }),
+        pb.collection('events').getFullList({ filter: `church = "${currentChurch.id}"` }),
+        pb
+          .collection('attendances')
+          .getFullList({ filter: `event.church = "${currentChurch.id}"` }),
+      ])
+      setSeeds(s)
+      setTeamMembers(tm)
+      setEvents(e)
+      setAttendances(a)
+    } catch (error) {
+      console.error('Error loading app data', error)
     }
   }
 
   useEffect(() => {
     loadData()
-    loadAttendances()
   }, [currentChurch?.id])
 
-  useRealtime('seeds', () => loadData(), !!currentChurch)
-  useRealtime(
-    'events',
-    () => {
-      loadData()
-      loadAttendances()
-    },
-    !!currentChurch,
-  )
-  useRealtime('team_members', () => loadData(), !!currentChurch)
-  useRealtime('attendances', () => loadAttendances(), !!currentChurch)
+  useRealtime('seeds', () => loadData())
+  useRealtime('team_members', () => loadData())
+  useRealtime('events', () => loadData())
+  useRealtime('attendances', () => loadData())
 
-  const computedSeeds = useMemo(() => {
-    return baseSeeds.map((seed) => {
-      const bdParts = seed.birthDate.split('-')
-      const bYear = parseInt(bdParts[0])
-      const bMonth = parseInt(bdParts[1]) - 1
-      const bDay = parseInt(bdParts[2])
-
-      const today = new Date()
-      let age = today.getFullYear() - bYear
-      if (today.getMonth() < bMonth || (today.getMonth() === bMonth && today.getDate() < bDay)) {
-        age--
-      }
-
-      return {
-        ...seed,
-        status: age >= 14 ? 'Inativo' : seed.status,
-      }
-    })
-  }, [baseSeeds])
-
-  const addSeed = async (seedData: Omit<Seed, 'id' | 'church' | 'registrationDate'>) => {
-    if (!currentChurch) return
-    const now = new Date().toISOString().split('T')[0]
-    await pb.collection('seeds').create({
-      ...seedData,
-      church: currentChurch.id,
-      registrationDate: now,
-      status: seedData.status || 'Ativo',
-    })
+  const addSeed = async (data: any) => {
+    if (!currentChurch) throw new Error('No church selected')
+    await pb.collection('seeds').create({ ...data, church: currentChurch.id, status: 'Ativo' })
   }
 
-  const updateSeed = async (id: string, seedData: Partial<Seed>) => {
-    await pb.collection('seeds').update(id, seedData)
+  const updateSeed = async (id: string, data: any) => {
+    await pb.collection('seeds').update(id, data)
   }
 
-  const addEvent = async (eventData: Omit<Event, 'id' | 'church'>) => {
-    if (!currentChurch) return
-    await pb.collection('events').create({
-      ...eventData,
-      church: currentChurch.id,
-    })
+  const addTeamMember = async (data: any) => {
+    if (!currentChurch) throw new Error('No church selected')
+    await pb.collection('team_members').create({ ...data, church: currentChurch.id })
   }
 
-  const toggleAttendance = async (
-    eventId: string,
-    participantId: string,
-    type: 'seed' | 'team',
-  ) => {
+  const updateTeamMember = async (id: string, data: any) => {
+    await pb.collection('team_members').update(id, data)
+  }
+
+  const addEvent = async (data: any) => {
+    if (!currentChurch) throw new Error('No church selected')
+    await pb.collection('events').create({ ...data, church: currentChurch.id })
+  }
+
+  const toggleAttendance = async (eventId: string, personId: string, type: 'seed' | 'team') => {
     const existing = attendances.find(
       (a) =>
         a.event === eventId &&
-        (type === 'seed' ? a.seed === participantId : a.team_member === participantId) &&
-        a.type === type,
+        a.type === type &&
+        (type === 'seed' ? a.seed === personId : a.team_member === personId),
     )
     if (existing) {
       await pb.collection('attendances').update(existing.id, { present: !existing.present })
     } else {
       await pb.collection('attendances').create({
         event: eventId,
-        seed: type === 'seed' ? participantId : null,
-        team_member: type === 'team' ? participantId : null,
         type,
+        seed: type === 'seed' ? personId : undefined,
+        team_member: type === 'team' ? personId : undefined,
         present: true,
       })
     }
   }
 
-  const addTeamMember = async (memberData: Omit<TeamMember, 'id' | 'church'>) => {
-    if (!currentChurch) return
-    await pb.collection('team_members').create({
-      ...memberData,
-      church: currentChurch.id,
-    })
-  }
-
-  const updateTeamMember = async (id: string, memberData: Partial<TeamMember>) => {
-    await pb.collection('team_members').update(id, memberData)
-  }
-
   return (
     <AppContext.Provider
       value={{
-        seeds: computedSeeds,
+        seeds,
+        teamMembers,
         events,
         attendances,
-        teamMembers,
         addSeed,
         updateSeed,
-        addEvent,
-        toggleAttendance,
         addTeamMember,
         updateTeamMember,
+        addEvent,
+        toggleAttendance,
       }}
     >
       {children}
