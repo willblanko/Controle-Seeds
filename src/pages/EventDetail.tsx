@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -11,6 +11,8 @@ import {
   X,
   ImageIcon,
   Trash2,
+  Users,
+  Plus,
 } from 'lucide-react'
 
 import { useApp } from '@/contexts/app-context'
@@ -35,6 +37,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Input } from '@/components/ui/input'
 
 export default function EventDetail() {
@@ -48,6 +58,7 @@ export default function EventDetail() {
   const [isCompleting, setIsCompleting] = useState(false)
   const [mediaFiles, setMediaFiles] = useState<any[]>([])
   const [isUploading, setIsUploading] = useState(false)
+  const [importSearch, setImportSearch] = useState('')
 
   const event = events.find((e) => e.id === id)
 
@@ -56,6 +67,67 @@ export default function EventDetail() {
       setMediaFiles(Array.isArray(event.media) ? event.media : [event.media])
     }
   }, [event])
+
+  const isCamp = event?.category === 'Camp'
+  const isTalentShow = event?.category === 'Show de talentos'
+
+  const eventSeeds = useMemo(() => {
+    if (!event) return []
+
+    if (isCamp) {
+      const importedIds = attendances
+        .filter((a) => a.event === event.id && a.type === 'seed')
+        .map((a) => a.seed)
+      return seeds.filter((s) => importedIds.includes(s.id))
+    }
+
+    const isGlobalEvent = !event.church || event.category === 'Connection'
+
+    const validChurchIds = isGlobalEvent
+      ? availableChurches.map((c) => c.id)
+      : ([event.church].filter(Boolean) as string[])
+
+    if (!isGlobalEvent) {
+      const guestIds = availableChurches
+        .filter((c) => (c as any).event_host === event.church)
+        .map((c) => c.id)
+      validChurchIds.push(...guestIds)
+    }
+
+    return seeds.filter((s) => validChurchIds.includes(s.church))
+  }, [event, seeds, availableChurches, attendances, isCamp])
+
+  const allOtherSeeds = seeds.filter((s) => !eventSeeds.some((es) => es.id === s.id))
+  const filteredImportSeeds = allOtherSeeds.filter((s) =>
+    s.name.toLowerCase().includes(importSearch.toLowerCase()),
+  )
+
+  const handleImportSeed = async (seedId: string) => {
+    if (!event) return
+    try {
+      await pb.collection('attendances').create({
+        event: event.id,
+        seed: seedId,
+        type: 'seed',
+        present: false,
+      })
+      toast({ title: 'Sucesso', description: 'Participante importado com sucesso!' })
+    } catch (e) {
+      toast({
+        title: 'Erro',
+        description: 'Erro ao importar participante.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleUpdateTalent = async (attId: string, field: string, value: any) => {
+    try {
+      await pb.collection('attendances').update(attId, { [field]: value })
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Erro ao atualizar dados.', variant: 'destructive' })
+    }
+  }
 
   if (!event) {
     return (
@@ -82,7 +154,6 @@ export default function EventDetail() {
     validChurchIds.push(...guestIds)
   }
 
-  const eventSeeds = seeds.filter((s) => validChurchIds.includes(s.church))
   const eventTeamMembers = teamMembers.filter((m) => validChurchIds.includes(m.church))
 
   const presentSeedsCount = attendances.filter(
@@ -323,41 +394,134 @@ export default function EventDetail() {
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="seeds" className="space-y-3 mt-4">
-                  {eventSeeds.map((seed, i) => {
-                    const isPresent = attendances.some(
-                      (a) =>
-                        a.event === event.id &&
-                        a.seed === seed.id &&
-                        a.type === 'seed' &&
-                        a.present,
-                    )
-                    return (
-                      <div
-                        key={seed.id}
-                        className={`flex items-center justify-between p-3 rounded-lg border transition-colors animate-fade-in ${
-                          isPresent ? 'border-primary/50 bg-primary/5' : 'bg-card'
-                        }`}
-                        style={{ animationDelay: `${i * 30}ms` }}
-                      >
-                        <div>
-                          <p className="font-medium text-sm">{seed.name}</p>
-                          <p className="text-xs text-muted-foreground">Contato: {seed.guardian1}</p>
-                        </div>
-                        <Switch
-                          checked={isPresent}
-                          disabled={event.completed}
-                          onCheckedChange={() => toggleAttendance(event.id, seed.id, 'seed')}
-                          aria-label={`Marcar presença para o Seed ${seed.name}`}
-                        />
-                      </div>
-                    )
-                  })}
-                  {eventSeeds.length === 0 && (
-                    <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
-                      Nenhum Seed encontrado para marcar presença.
+                <TabsContent value="seeds" className="space-y-4 mt-4">
+                  {isCamp && !event.completed && (
+                    <div className="flex justify-end mb-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            <Users className="mr-2 h-4 w-4" /> Importar Participantes
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                          <DialogHeader>
+                            <DialogTitle>Importar Participantes (Camp)</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4 pt-4">
+                            <Input
+                              placeholder="Buscar em todos os Seeds..."
+                              value={importSearch}
+                              onChange={(e) => setImportSearch(e.target.value)}
+                            />
+                            <ScrollArea className="h-[300px] border rounded-md p-2">
+                              {filteredImportSeeds.length === 0 ? (
+                                <p className="text-center text-muted-foreground py-4 text-sm">
+                                  Nenhum seed disponível.
+                                </p>
+                              ) : (
+                                <div className="space-y-2">
+                                  {filteredImportSeeds.map((s) => (
+                                    <div
+                                      key={s.id}
+                                      className="flex items-center justify-between p-2 hover:bg-muted rounded-md"
+                                    >
+                                      <div>
+                                        <p className="text-sm font-medium">{s.name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                          {availableChurches.find((c) => c.id === s.church)?.name ||
+                                            'Global'}
+                                        </p>
+                                      </div>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => handleImportSeed(s.id)}
+                                      >
+                                        <Plus className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </ScrollArea>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   )}
+
+                  <div className="space-y-3">
+                    {eventSeeds.map((seed, i) => {
+                      const attendance = attendances.find(
+                        (a) => a.event === event.id && a.seed === seed.id && a.type === 'seed',
+                      )
+                      const isPresent = attendance?.present || false
+                      return (
+                        <div
+                          key={seed.id}
+                          className={`flex flex-col p-3 rounded-lg border transition-colors animate-fade-in ${
+                            isPresent ? 'border-primary/50 bg-primary/5' : 'bg-card'
+                          }`}
+                          style={{ animationDelay: `${i * 30}ms` }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium text-sm">{seed.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Contato: {seed.guardian1}
+                              </p>
+                            </div>
+                            <Switch
+                              checked={isPresent}
+                              disabled={event.completed}
+                              onCheckedChange={() => toggleAttendance(event.id, seed.id, 'seed')}
+                            />
+                          </div>
+
+                          {isTalentShow && isPresent && attendance && (
+                            <div className="mt-3 pt-3 border-t border-primary/10 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium text-primary">
+                                  Participante do Show?
+                                </span>
+                                <Switch
+                                  checked={attendance.is_participant || false}
+                                  disabled={event.completed}
+                                  onCheckedChange={(val) =>
+                                    handleUpdateTalent(attendance.id, 'is_participant', val)
+                                  }
+                                />
+                              </div>
+                              {attendance.is_participant && (
+                                <div className="space-y-1">
+                                  <Input
+                                    placeholder="Qual o talento?"
+                                    defaultValue={attendance.talent_details || ''}
+                                    disabled={event.completed}
+                                    onBlur={(e) =>
+                                      handleUpdateTalent(
+                                        attendance.id,
+                                        'talent_details',
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="h-8 text-xs bg-background"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                    {eventSeeds.length === 0 && (
+                      <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
+                        {isCamp
+                          ? 'Nenhum participante importado. Use o botão acima.'
+                          : 'Nenhum Seed encontrado para marcar presença.'}
+                      </div>
+                    )}
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="team" className="space-y-3 mt-4">

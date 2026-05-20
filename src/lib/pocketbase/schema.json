@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-20T21:39:38.887Z",
+  "generatedAt": "2026-05-20T21:53:14.020Z",
   "collections": [
     {
       "name": "users",
@@ -494,6 +494,18 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "is_participant",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "talent_details",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

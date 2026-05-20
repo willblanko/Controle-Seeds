@@ -105,13 +105,13 @@ export default function Events() {
   const [categoryFilter, setCategoryFilter] = useState('all')
 
   const [calendarMonth, setCalendarMonth] = useState(new Date())
-  const [calendarChurches, setCalendarChurches] = useState<string[]>([])
+  const [calendarChurch, setCalendarChurch] = useState<string>('')
 
   useEffect(() => {
-    if (availableChurches.length > 0 && calendarChurches.length === 0) {
-      setCalendarChurches(availableChurches.map((c) => c.id))
+    if (availableChurches.length > 0 && !calendarChurch) {
+      setCalendarChurch(availableChurches[0].id)
     }
-  }, [availableChurches])
+  }, [availableChurches, calendarChurch])
 
   const form = useForm<z.infer<typeof eventSchema>>({
     resolver: zodResolver(eventSchema),
@@ -221,16 +221,12 @@ export default function Events() {
 
   const calendarEvents = events.filter((e) => {
     if (categoryFilter !== 'all' && e.category !== categoryFilter) return false
+    if (e.category === 'Camp') return true
     if (user?.role !== 'admin' && currentChurch) {
-      return (
-        e.church === currentChurch.id ||
-        !e.church ||
-        e.category === 'Camp' ||
-        e.category === 'Connection'
-      )
+      return e.church === currentChurch.id || !e.church || e.category === 'Connection'
     }
-    if (!e.church || e.category === 'Camp' || e.category === 'Connection') return true
-    return calendarChurches.includes(e.church)
+    if (!e.church || e.category === 'Connection') return true
+    return e.church === calendarChurch
   })
 
   const daysInMonth = eachDayOfInterval({
@@ -365,7 +361,6 @@ export default function Events() {
                         <SelectContent>
                           <SelectItem value="Hangout">Hangout</SelectItem>
                           <SelectItem value="Culto">Culto</SelectItem>
-                          <SelectItem value="Reunião">Reunião</SelectItem>
                           <SelectItem value="Show de talentos">Show de talentos</SelectItem>
                           {user?.role === 'admin' && (
                             <>
@@ -474,7 +469,6 @@ export default function Events() {
               { id: 'Culto', label: 'Culto' },
               { id: 'Connection', label: 'Connection' },
               { id: 'Camp', label: 'Camp' },
-              { id: 'Reunião', label: 'Reunião' },
               { id: 'Show de talentos', label: 'Show de talentos' },
             ].map((cat) => (
               <Button
@@ -516,20 +510,18 @@ export default function Events() {
               </div>
               {user?.role === 'admin' && availableChurches.length > 0 && (
                 <div className="flex flex-wrap gap-2 justify-end">
-                  {availableChurches.map((c) => (
-                    <Badge
-                      key={c.id}
-                      variant={calendarChurches.includes(c.id) ? 'default' : 'outline'}
-                      className="cursor-pointer select-none"
-                      onClick={() => {
-                        setCalendarChurches((prev) =>
-                          prev.includes(c.id) ? prev.filter((id) => id !== c.id) : [...prev, c.id],
-                        )
-                      }}
-                    >
-                      {c.name}
-                    </Badge>
-                  ))}
+                  <Select value={calendarChurch} onValueChange={setCalendarChurch}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Selecione a Igreja" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableChurches.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
             </div>
