@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-20T19:19:50.304Z",
+  "generatedAt": "2026-05-20T19:30:47.664Z",
   "collections": [
     {
       "name": "users",
@@ -301,12 +301,6 @@
         {
           "name": "photoUrl",
           "type": "url",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "email",
-          "type": "email",
           "required": false,
           "system": false
         },

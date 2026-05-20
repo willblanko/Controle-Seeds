@@ -175,7 +175,7 @@ export default function Equipe() {
           <TableHeader>
             <TableRow className="bg-muted/30">
               <TableHead>Membro</TableHead>
-              <TableHead className="hidden sm:table-cell">Contato</TableHead>
+              <TableHead className="hidden sm:table-cell">Idade</TableHead>
               <TableHead>Função</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -203,18 +203,13 @@ export default function Equipe() {
                       <div className="flex flex-col min-w-0">
                         <span className="font-semibold text-base truncate">{member.name}</span>
                         <span className="text-xs text-muted-foreground sm:hidden truncate">
-                          {member.email}
+                          {calculateAge(member.dateOfBirth)} anos
                         </span>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
-                    <div className="flex flex-col">
-                      <span className="text-sm truncate">{member.email || '—'}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {calculateAge(member.dateOfBirth)} anos
-                      </span>
-                    </div>
+                    {calculateAge(member.dateOfBirth)} anos
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -303,8 +298,8 @@ export default function Equipe() {
 
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div className="flex flex-col gap-1">
-                      <span className="text-muted-foreground">Email</span>
-                      <span className="font-medium">{selectedMember.email || 'Não informado'}</span>
+                      <span className="text-muted-foreground">Sexo</span>
+                      <span className="font-medium">{selectedMember.sex || 'Não informado'}</span>
                     </div>
                     <div className="flex flex-col gap-1">
                       <span className="text-muted-foreground">Idade</span>

@@ -44,8 +44,7 @@ const courseSchema = z
 
 const formSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
-  photoUrl: z.string().optional(),
-  email: z.string().min(1, 'Email é obrigatório').email('Email inválido'),
+  photoUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
   dateOfBirth: z.string().min(1, 'Data de nascimento é obrigatória'),
   role: z.enum(['Líder', 'Membro', 'Selecione']).refine((val) => val !== 'Selecione', {
     message: 'Seleção obrigatória',
@@ -80,7 +79,6 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
     defaultValues: {
       name: initialData?.name || '',
       photoUrl: initialData?.photoUrl || '',
-      email: initialData?.email || '',
       dateOfBirth: initialData?.dateOfBirth || '',
       role: initialData?.role || 'Selecione',
       sex: initialData?.sex || 'Selecione',
@@ -113,7 +111,6 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
     onSubmit({
       name: values.name,
       photoUrl: values.photoUrl || '',
-      email: values.email,
       dateOfBirth: values.dateOfBirth,
       role: values.role as 'Líder' | 'Membro',
       sex: values.sex as 'Masculino' | 'Feminino',
@@ -135,19 +132,6 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
                 <FormLabel>Nome Completo*</FormLabel>
                 <FormControl>
                   <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email*</FormLabel>
-                <FormControl>
-                  <Input type="email" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -215,27 +199,23 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
             name="photoUrl"
             render={({ field }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>Foto</FormLabel>
+                <FormLabel>URL da Foto</FormLabel>
                 <div className="flex items-center gap-4">
                   {currentPhoto && (
                     <img
                       src={currentPhoto}
                       alt="Preview"
                       className="w-10 h-10 rounded-full object-cover border"
+                      onError={(e) => {
+                        ;(e.target as HTMLImageElement).style.display = 'none'
+                      }}
+                      onLoad={(e) => {
+                        ;(e.target as HTMLImageElement).style.display = 'block'
+                      }}
                     />
                   )}
                   <FormControl>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) {
-                          const url = URL.createObjectURL(file)
-                          field.onChange(url)
-                        }
-                      }}
-                    />
+                    <Input type="url" placeholder="https://exemplo.com/foto.jpg" {...field} />
                   </FormControl>
                 </div>
                 <FormMessage />
