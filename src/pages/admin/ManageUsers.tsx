@@ -108,6 +108,7 @@ export default function ManageUsers() {
           name: formData.name,
           email: formData.email,
           role: formData.role,
+          emailVisibility: true,
         }
         if (formData.password) {
           data.password = formData.password
@@ -142,6 +143,7 @@ export default function ManageUsers() {
           password: formData.password,
           passwordConfirm: formData.password,
           role: formData.role,
+          emailVisibility: true,
         })
 
         if (formData.role === 'user') {
@@ -189,7 +191,7 @@ export default function ManageUsers() {
       </div>
 
       <div className="border rounded-md bg-card shadow-sm overflow-hidden">
-        <Table>
+        <Table className="min-w-[700px]">
           <TableHeader>
             <TableRow className="bg-muted/30">
               <TableHead>Nome</TableHead>
