@@ -4,13 +4,7 @@ import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardFooter,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardFooter } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 
 export default function Login() {
@@ -49,12 +43,14 @@ export default function Login() {
               alt="Seeds Logo"
               className="h-20 sm:h-24 w-auto object-contain transition-all duration-300 hover:scale-105"
               onError={(e) => {
-                e.currentTarget.src = 'https://img.usecurling.com/i?q=seed&shape=fill&color=spring-green'
+                e.currentTarget.src =
+                  'https://img.usecurling.com/i?q=seed&shape=fill&color=spring-green'
               }}
             />
           </div>
           <CardDescription>Entre com suas credenciais para acessar o sistema</CardDescription>
-        </CardHeader>        <form onSubmit={handleSubmit}>
+        </CardHeader>{' '}
+        <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             {error && (
               <div className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-950/50 rounded-md border border-red-200 dark:border-red-900">
