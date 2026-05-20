@@ -43,7 +43,6 @@ export default function EventDetail() {
   const { toast } = useToast()
 
   const [isCompleting, setIsCompleting] = useState(false)
-  const [showConfirmComplete, setShowConfirmComplete] = useState(false)
   const [mediaFiles, setMediaFiles] = useState<any[]>([])
   const [isUploading, setIsUploading] = useState(false)
 
@@ -80,7 +79,7 @@ export default function EventDetail() {
     validChurchIds.push(...guestIds)
   }
 
-  const activeSeeds = seeds.filter((s) => s.status === 'Ativo' && validChurchIds.includes(s.church))
+  const eventSeeds = seeds.filter((s) => validChurchIds.includes(s.church))
   const eventTeamMembers = teamMembers.filter((m) => validChurchIds.includes(m.church))
 
   const presentSeedsCount = attendances.filter(
@@ -98,9 +97,17 @@ export default function EventDetail() {
     return false
   }
 
-  const handleCompleteEvent = async (force: boolean = false) => {
-    if (!force && (presentSeedsCount === 0 || presentTeamCount === 0)) {
-      setShowConfirmComplete(true)
+  const handleCompleteEvent = async () => {
+    const hasSeedAttendance = attendances.some(
+      (a) => a.event === id && a.type === 'seed' && a.present,
+    )
+
+    if (!hasSeedAttendance && eventSeeds.length > 0) {
+      toast({
+        title: 'Atenção',
+        description: 'Registre pelo menos uma presença de Seed antes de concluir o evento.',
+        variant: 'destructive',
+      })
       return
     }
 
@@ -117,7 +124,6 @@ export default function EventDetail() {
       })
     } finally {
       setIsCompleting(false)
-      setShowConfirmComplete(false)
     }
   }
 
@@ -181,24 +187,6 @@ export default function EventDetail() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-12">
-      <AlertDialog open={showConfirmComplete} onOpenChange={setShowConfirmComplete}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Concluir sem presenças completas?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Ainda não há presenças registradas para a equipe ou para os seeds neste evento. Tem
-              certeza que deseja concluí-lo mesmo assim? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleCompleteEvent(true)}>
-              Sim, concluir evento
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <div>
         <Button
           variant="ghost"
@@ -237,11 +225,11 @@ export default function EventDetail() {
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <Button variant="outline" asChild>
               <Link to={`/eventos/${event.id}/check-in`} target="_blank">
-                <LinkIcon className="mr-2 h-4 w-4" /> Link de Presença
+                <LinkIcon className="mr-2 h-4 w-4" /> Gerar Link de Presença
               </Link>
             </Button>
             {canComplete() && (
-              <Button onClick={() => handleCompleteEvent(false)} disabled={isCompleting}>
+              <Button onClick={handleCompleteEvent} disabled={isCompleting}>
                 <CheckCircle className="mr-2 h-4 w-4" />{' '}
                 {isCompleting ? 'Concluindo...' : 'Concluir Evento'}
               </Button>
@@ -255,7 +243,7 @@ export default function EventDetail() {
           <Card className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-4 border-b">
               <div>
-                <CardTitle>Aba de Presença</CardTitle>
+                <CardTitle>Presença</CardTitle>
                 <CardDescription>
                   Marque a participação da equipe e dos Seeds neste evento.
                 </CardDescription>
@@ -267,7 +255,7 @@ export default function EventDetail() {
                   <TabsTrigger value="seeds" className="gap-2">
                     Seeds{' '}
                     <Badge variant="secondary" className="ml-1 rounded-full">
-                      {presentSeedsCount}/{activeSeeds.length}
+                      {presentSeedsCount}/{eventSeeds.length}
                     </Badge>
                   </TabsTrigger>
                   <TabsTrigger value="team" className="gap-2">
@@ -279,7 +267,7 @@ export default function EventDetail() {
                 </TabsList>
 
                 <TabsContent value="seeds" className="space-y-3 mt-4">
-                  {activeSeeds.map((seed, i) => {
+                  {eventSeeds.map((seed, i) => {
                     const isPresent = attendances.some(
                       (a) =>
                         a.event === event.id &&
@@ -308,9 +296,9 @@ export default function EventDetail() {
                       </div>
                     )
                   })}
-                  {activeSeeds.length === 0 && (
+                  {eventSeeds.length === 0 && (
                     <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
-                      Nenhum Seed ativo para marcar presença.
+                      Nenhum Seed encontrado para marcar presença.
                     </div>
                   )}
                 </TabsContent>

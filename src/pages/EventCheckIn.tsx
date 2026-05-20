@@ -16,7 +16,7 @@ export default function EventCheckIn() {
 
   const event = events.find((e) => e.id === id)
 
-  const activeSeeds = useMemo(() => {
+  const eventSeeds = useMemo(() => {
     if (!event) return []
     const isGlobalEvent =
       !event.church || event.category === 'Camp' || event.category === 'Connection'
@@ -32,10 +32,10 @@ export default function EventCheckIn() {
       validChurchIds.push(...guestIds)
     }
 
-    return seeds.filter((s) => s.status === 'Ativo' && validChurchIds.includes(s.church))
+    return seeds.filter((s) => validChurchIds.includes(s.church))
   }, [event, seeds, availableChurches])
 
-  const filteredSeeds = activeSeeds.filter((s) =>
+  const filteredSeeds = eventSeeds.filter((s) =>
     s.name.toLowerCase().includes(search.toLowerCase()),
   )
 
