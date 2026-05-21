@@ -52,8 +52,9 @@ const formSchema = z.object({
   sex: z.enum(['Masculino', 'Feminino', 'Selecione']).refine((val) => val !== 'Selecione', {
     message: 'Seleção obrigatória',
   }),
+  phone: z.string().optional(),
+  entry_date: z.string().optional(),
   courses: z.object({
-    cme: courseSchema,
     ebm: courseSchema,
     te: courseSchema,
   }),
@@ -68,7 +69,6 @@ interface Props {
 }
 
 const COURSES = [
-  { key: 'cme', label: 'CME*' },
   { key: 'ebm', label: 'EBM*' },
   { key: 'te', label: 'TE*' },
 ] as const
@@ -82,11 +82,9 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
       dateOfBirth: initialData?.dateOfBirth || '',
       role: initialData?.role || 'Selecione',
       sex: initialData?.sex || 'Selecione',
+      phone: initialData?.phone || '',
+      entry_date: initialData?.entry_date || '',
       courses: {
-        cme: {
-          status: initialData?.courses?.cme?.status || 'Selecione',
-          completionYear: initialData?.courses?.cme?.completionYear || '',
-        },
         ebm: {
           status: initialData?.courses?.ebm?.status || 'Selecione',
           completionYear: initialData?.courses?.ebm?.completionYear || '',
@@ -102,7 +100,7 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
   const handleSubmit = (values: FormValues) => {
     const cleanCourses = { ...values.courses } as any
     COURSES.forEach(({ key }) => {
-      const k = key as 'cme' | 'ebm' | 'te'
+      const k = key as 'ebm' | 'te'
       if (cleanCourses[k].status !== 'Completo') {
         cleanCourses[k].completionYear = undefined
       }
@@ -114,6 +112,8 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
       dateOfBirth: values.dateOfBirth,
       role: values.role as 'Líder' | 'Membro',
       sex: values.sex as 'Masculino' | 'Feminino',
+      phone: values.phone,
+      entry_date: values.entry_date,
       courses: cleanCourses,
     })
   }
@@ -194,6 +194,32 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
           />
           <FormField
             control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Telefone</FormLabel>
+                <FormControl>
+                  <Input placeholder="(00) 00000-0000" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="entry_date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mês/Ano de Entrada</FormLabel>
+                <FormControl>
+                  <Input type="month" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="photoUrl"
             render={({ field: { value, onChange, ...field } }) => (
               <FormItem className="sm:col-span-2">
@@ -238,7 +264,7 @@ function CourseFieldRow({
   label,
   form,
 }: {
-  courseKey: 'cme' | 'ebm' | 'te'
+  courseKey: 'ebm' | 'te'
   label: string
   form: any
 }) {

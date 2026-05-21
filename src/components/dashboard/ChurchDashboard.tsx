@@ -55,14 +55,6 @@ export function ChurchDashboard() {
           <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
           <p className="text-muted-foreground">Visão geral do acompanhamento dos Seeds.</p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link to="/seeds">Gerenciar Seeds</Link>
-          </Button>
-          <Button asChild>
-            <Link to="/eventos">Novo Evento</Link>
-          </Button>
-        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

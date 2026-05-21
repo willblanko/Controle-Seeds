@@ -11,6 +11,8 @@ import {
 } from '@/components/ui/chart'
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid } from 'recharts'
 
+import { ChurchSelector } from '@/components/church-selector'
+
 export default function PresenceDashboard() {
   const { events, attendances, seeds } = useApp()
   const { currentChurch, availableChurches } = useChurch()
@@ -63,11 +65,16 @@ export default function PresenceDashboard() {
 
   return (
     <div className="space-y-6 animate-fade-in-up">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Dashboard de Presença</h2>
-        <p className="text-muted-foreground">
-          Análise de participação nos eventos (excluindo reuniões).
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Dashboard de Presença</h2>
+          <p className="text-muted-foreground">
+            Análise de participação nos eventos (excluindo reuniões).
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <ChurchSelector allowGlobal={false} />
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

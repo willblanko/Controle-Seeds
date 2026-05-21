@@ -52,7 +52,24 @@ function memberRoleColors(role: string) {
     : 'border-gray-200 bg-gray-50 text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300'
 }
 
-type FilterRole = 'Todos' | 'Líderes' | 'Membros' | 'CME' | 'EBM' | 'TE'
+function formatSeniority(entryDate: string) {
+  if (!entryDate) return 'Não informado'
+  const [year, month] = entryDate.split('-')
+  const start = new Date(parseInt(year), parseInt(month) - 1, 1)
+  const now = new Date()
+  let diffMonths =
+    (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth())
+  if (diffMonths < 0) diffMonths = 0
+  const y = Math.floor(diffMonths / 12)
+  const m = diffMonths % 12
+  if (y === 0 && m === 0) return 'Recém-chegado'
+  let res = []
+  if (y > 0) res.push(`${y} ano${y > 1 ? 's' : ''}`)
+  if (m > 0) res.push(`${m} mês${m > 1 ? 'es' : ''}`)
+  return res.join(' e ')
+}
+
+type FilterRole = 'Todos' | 'Líderes' | 'Membros' | 'EBM' | 'TE'
 
 export default function Equipe() {
   const { currentChurch, availableChurches } = useChurch()
@@ -114,9 +131,6 @@ export default function Equipe() {
         case 'Membros':
           matchesRole = member.role === 'Membro'
           break
-        case 'CME':
-          matchesRole = ['Completo', 'Em progresso'].includes(member.courses?.cme?.status)
-          break
         case 'EBM':
           matchesRole =
             ['Completo', 'Em progresso'].includes(member.courses?.ebm?.status) ||
@@ -163,6 +177,8 @@ export default function Equipe() {
       formData.append('dateOfBirth', data.dateOfBirth)
       formData.append('role', data.role)
       formData.append('sex', data.sex)
+      formData.append('phone', data.phone || '')
+      formData.append('entry_date', data.entry_date || '')
       formData.append('church', currentChurch.id)
       formData.append('courses', JSON.stringify(data.courses))
       if (data.photoUrl instanceof File) {
@@ -186,6 +202,8 @@ export default function Equipe() {
       formData.append('dateOfBirth', data.dateOfBirth)
       formData.append('role', data.role)
       formData.append('sex', data.sex)
+      formData.append('phone', data.phone || '')
+      formData.append('entry_date', data.entry_date || '')
       formData.append('courses', JSON.stringify(data.courses))
       if (data.photoUrl instanceof File) {
         formData.append('photo', data.photoUrl)
@@ -265,14 +283,11 @@ export default function Equipe() {
 
         const ebmVal = row['EBM'] || ''
         const teVal = row['TE'] || ''
-        const cmeVal = row['CME'] || ''
 
         const ebmMapped =
           ebmVal === 'Sim' ? 'Completo' : ebmVal === 'Cursando' ? 'Em progresso' : 'Não feito'
         const teMapped =
           teVal === 'Sim' ? 'Completo' : teVal === 'Cursando' ? 'Em progresso' : 'Não feito'
-        const cmeMapped =
-          cmeVal === 'Sim' ? 'Completo' : cmeVal === 'Cursando' ? 'Em progresso' : 'Não feito'
 
         const memberData = {
           church: churchMatch.id,
@@ -280,10 +295,11 @@ export default function Equipe() {
           dateOfBirth: dob,
           role: row['Função'] || 'Membro',
           sex: row['Sexo'] || 'Masculino',
+          phone: row['Telefone'] || '',
+          entry_date: row['Entrada'] || '', // YYYY-MM
           courses: {
             TE: teVal,
             EBM: ebmVal,
-            cme: { status: cmeMapped },
             ebm: { status: ebmMapped },
             te: { status: teMapped },
           },
@@ -337,7 +353,7 @@ export default function Equipe() {
             className="shrink-0"
             onClick={() => {
               const csvContent =
-                'Nome;Nascimento;Igreja;Função;Sexo;EBM;TE;CME\nExemplo Membro;01/01/2000;Sede;Membro;Masculino;Sim;Não;Cursando\n'
+                'Nome;Nascimento;Igreja;Função;Sexo;Telefone;Entrada;EBM;TE\nExemplo Membro;01/01/2000;Sede;Membro;Masculino;(11) 99999-9999;2023-01;Sim;Não\n'
               const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
               const url = URL.createObjectURL(blob)
               const link = document.createElement('a')
@@ -439,7 +455,10 @@ export default function Equipe() {
           />
         </div>
         <div className="flex overflow-x-auto gap-2 pb-2 -mb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {(['Todos', 'Líderes', 'Membros', 'CME', 'EBM', 'TE'] as FilterRole[]).map((role) => (
+          <Badge variant="secondary" className="mr-2 text-sm">
+            {filteredMembers.length} Membros
+          </Badge>
+          {(['Todos', 'Líderes', 'Membros', 'EBM', 'TE'] as FilterRole[]).map((role) => (
             <button
               key={role}
               onClick={() => setFilterRole(role)}
@@ -499,6 +518,9 @@ export default function Equipe() {
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       {calculateAge(member.dateOfBirth)} anos
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {formatSeniority(member.entry_date)}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -603,7 +625,7 @@ export default function Equipe() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                     <div className="flex flex-col gap-1">
                       <span className="text-muted-foreground">Sexo</span>
                       <span className="font-medium">{selectedMember.sex || 'Não informado'}</span>
@@ -614,20 +636,21 @@ export default function Equipe() {
                         {calculateAge(selectedMember.dateOfBirth)} anos
                       </span>
                     </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-muted-foreground">Telefone</span>
+                      <span className="font-medium">{selectedMember.phone || 'Não informado'}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-muted-foreground">Tempo na Igreja</span>
+                      <span className="font-medium">
+                        {formatSeniority(selectedMember.entry_date)}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="bg-muted/30 p-4 rounded-lg border">
                     <h4 className="font-semibold text-sm mb-3">Treinamentos</h4>
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div className="flex flex-col">
-                        <span className="text-muted-foreground mb-1">CME</span>
-                        <span className="font-medium">
-                          {selectedMember.courses?.cme?.status || 'Não feito'}
-                          {selectedMember.courses?.cme?.status === 'Completo' &&
-                            selectedMember.courses?.cme?.completionYear &&
-                            ` (${selectedMember.courses.cme.completionYear})`}
-                        </span>
-                      </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
                       <div className="flex flex-col">
                         <span className="text-muted-foreground mb-1">EBM</span>
                         <span className="font-medium">

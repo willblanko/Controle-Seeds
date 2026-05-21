@@ -33,13 +33,7 @@ export default function Layout() {
             <LogOut className="h-5 w-5" />
           </Button>
         </header>
-        <div className="h-14 border-b bg-card hidden md:flex items-center justify-between px-8">
-          <div className="text-sm font-medium text-muted-foreground flex items-center">
-            Contexto atual:{' '}
-            <span className="text-foreground ml-2 px-2 py-1 bg-secondary rounded-md font-semibold">
-              {currentChurch?.name || 'Visão Global (Todas as Igrejas)'}
-            </span>
-          </div>
+        <div className="h-14 border-b bg-card hidden md:flex items-center justify-end px-8">
           <Button
             variant="ghost"
             size="sm"

@@ -18,11 +18,20 @@ import pb from '@/lib/pocketbase/client'
 import { ChurchSelector } from '@/components/church-selector'
 import { useNavigate } from 'react-router-dom'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { EventForm } from '@/components/event-form'
 
 export default function Events() {
   const { currentChurch, availableChurches } = useChurch()
   const [search, setSearch] = useState('')
   const [events, setEvents] = useState<any[]>([])
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
   const { toast } = useToast()
   const navigate = useNavigate()
 
@@ -58,14 +67,32 @@ export default function Events() {
   }, [events, search, currentChurch, availableChurches])
 
   const futureEvents = filteredEvents.filter(
-    (e) => new Date(e.date) >= new Date(new Date().setHours(0, 0, 0, 0)),
+    (e) => new Date(e.date + 'T12:00:00') >= new Date(new Date().setHours(0, 0, 0, 0)),
   )
   const pastEvents = filteredEvents
-    .filter((e) => new Date(e.date) < new Date(new Date().setHours(0, 0, 0, 0)))
+    .filter((e) => new Date(e.date + 'T12:00:00') < new Date(new Date().setHours(0, 0, 0, 0)))
     .reverse()
 
+  const handleCreate = async (data: any) => {
+    if (!currentChurch && data.category !== 'Camp') {
+      toast({ title: 'Erro', description: 'Selecione uma igreja.', variant: 'destructive' })
+      return
+    }
+    try {
+      await pb.collection('events').create({
+        ...data,
+        church: currentChurch?.id || '',
+      })
+      await loadData()
+      setIsCreateOpen(false)
+      toast({ title: 'Evento criado.' })
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
+  }
+
   const renderEventRow = (event: any) => {
-    const isFuture = new Date(event.date) >= new Date(new Date().setHours(0, 0, 0, 0))
+    const isFuture = new Date(event.date + 'T12:00:00') >= new Date(new Date().setHours(0, 0, 0, 0))
     return (
       <TableRow key={event.id}>
         <TableCell>
@@ -81,9 +108,6 @@ export default function Events() {
         <TableCell className="text-right space-x-2">
           <Button variant="ghost" size="icon" onClick={() => navigate(`/eventos/${event.id}`)}>
             <Eye className="w-4 h-4 text-muted-foreground" />
-          </Button>
-          <Button variant="ghost" size="icon">
-            <Edit className="w-4 h-4 text-blue-500" />
           </Button>
           <Button
             variant="ghost"
@@ -106,14 +130,24 @@ export default function Events() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Eventos</h1>
-          <p className="text-muted-foreground">Planeje e acompanhe os eventos da rede.</p>
+          <p className="text-muted-foreground">Planeje e acompanhe os eventos da igreja.</p>
         </div>
         <div className="flex items-center gap-2">
           <ChurchSelector allowGlobal={false} />
-          <Button className="gap-2 shrink-0">
-            <Plus className="h-4 w-4" />
-            <span>Novo Evento</span>
-          </Button>
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 shrink-0">
+                <Plus className="h-4 w-4" />
+                <span>Novo Evento</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Novo Evento</DialogTitle>
+              </DialogHeader>
+              <EventForm onSubmit={handleCreate} onCancel={() => setIsCreateOpen(false)} />
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 

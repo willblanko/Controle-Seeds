@@ -12,8 +12,9 @@ export interface TeamMember {
   dateOfBirth: string
   role: 'Líder' | 'Membro'
   sex?: 'Masculino' | 'Feminino'
+  phone?: string
+  entry_date?: string
   courses: {
-    cme: CourseData
     ebm: CourseData
     te: CourseData
     TE?: string
