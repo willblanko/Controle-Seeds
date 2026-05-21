@@ -152,12 +152,9 @@ export default function Equipe() {
   }, [teamMembers, search, filterRole, currentChurch, availableChurches])
 
   const getStats = (memberId: string, churchId: string) => {
-    const memberAtts = attendances.filter((a) => a.team_member === memberId && a.present)
-    const churchPastEvents = events.filter(
-      (e) => (e.church === churchId || e.category === 'Camp') && new Date(e.date) < new Date(),
-    )
-    const presences = memberAtts.length
-    const absences = Math.max(0, churchPastEvents.length - presences)
+    const memberAtts = attendances.filter((a) => a.team_member === memberId)
+    const presences = memberAtts.filter((a) => a.present === true).length
+    const absences = memberAtts.filter((a) => a.present === false).length
     return { presences, absences }
   }
 
@@ -644,6 +641,25 @@ export default function Equipe() {
                       <span className="text-muted-foreground">Tempo na Igreja</span>
                       <span className="font-medium">
                         {formatSeniority(selectedMember.entry_date)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-green-50 p-4 rounded-lg border border-green-200 flex flex-col items-center justify-center dark:bg-green-900/20 dark:border-green-800">
+                      <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        {getStats(selectedMember.id, selectedMember.church).presences}
+                      </span>
+                      <span className="text-xs text-green-800 dark:text-green-300 font-medium uppercase tracking-wider">
+                        Presenças
+                      </span>
+                    </div>
+                    <div className="bg-red-50 p-4 rounded-lg border border-red-200 flex flex-col items-center justify-center dark:bg-red-900/20 dark:border-red-800">
+                      <span className="text-2xl font-bold text-red-600 dark:text-red-400">
+                        {getStats(selectedMember.id, selectedMember.church).absences}
+                      </span>
+                      <span className="text-xs text-red-800 dark:text-red-300 font-medium uppercase tracking-wider">
+                        Faltas
                       </span>
                     </div>
                   </div>

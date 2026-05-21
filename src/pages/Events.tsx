@@ -187,6 +187,37 @@ export default function Events() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+
+        {currentChurch && (
+          <div className="flex flex-col sm:flex-row gap-4 mb-2 mt-4">
+            <div className="bg-blue-50 text-blue-800 border border-blue-200 px-4 py-3 rounded-lg flex-1 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300">
+              <div className="text-sm font-semibold mb-1">Cultos Realizados (Ano Atual)</div>
+              <div className="text-2xl font-bold">
+                {
+                  pastEvents.filter(
+                    (e) =>
+                      e.category === 'Culto' &&
+                      e.church === currentChurch.id &&
+                      new Date(e.date).getFullYear() === new Date().getFullYear(),
+                  ).length
+                }
+              </div>
+            </div>
+            <div className="bg-orange-50 text-orange-800 border border-orange-200 px-4 py-3 rounded-lg flex-1 dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-300">
+              <div className="text-sm font-semibold mb-1">Hangouts Realizados (Ano Atual)</div>
+              <div className="text-2xl font-bold">
+                {
+                  pastEvents.filter(
+                    (e) =>
+                      e.category === 'Hangout' &&
+                      e.church === currentChurch.id &&
+                      new Date(e.date).getFullYear() === new Date().getFullYear(),
+                  ).length
+                }
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <Tabs defaultValue="calendar" className="w-full">
@@ -209,20 +240,6 @@ export default function Events() {
             <Button variant="outline" size="icon" onClick={nextMonth}>
               <ChevronRight className="h-4 w-4" />
             </Button>
-          </div>
-          <div className="flex items-center gap-4 mb-4 text-xs">
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 bg-orange-500 rounded-full"></div> Camp
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 bg-blue-500 rounded-full"></div> Connection
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 bg-green-600 rounded-full"></div> Próximos
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 bg-gray-500 rounded-full"></div> Passados
-            </div>
           </div>
           <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden">
             {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day) => (

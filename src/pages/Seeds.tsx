@@ -14,6 +14,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
@@ -36,10 +38,14 @@ import pb from '@/lib/pocketbase/client'
 import { ChurchSelector } from '@/components/church-selector'
 import { SeedForm } from '@/components/seed-form'
 
+type FilterType = '11 anos' | '12 anos' | '13 anos' | 'Alérgicos' | 'Meninos' | 'Meninas'
+
 export default function Seeds() {
   const { currentChurch, availableChurches } = useChurch()
   const [search, setSearch] = useState('')
+  const [activeFilters, setActiveFilters] = useState<FilterType[]>([])
   const [seeds, setSeeds] = useState<any[]>([])
+  const [attendances, setAttendances] = useState<any[]>([])
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [selectedSeed, setSelectedSeed] = useState<any>(null)
   const [isEditMode, setIsEditMode] = useState(false)
@@ -51,8 +57,12 @@ export default function Seeds() {
 
   const loadData = async () => {
     try {
-      const data = await pb.collection('seeds').getFullList()
-      setSeeds(data)
+      const [seedsData, attData] = await Promise.all([
+        pb.collection('seeds').getFullList(),
+        pb.collection('attendances').getFullList(),
+      ])
+      setSeeds(seedsData)
+      setAttendances(attData)
     } catch (e) {
       console.error(e)
     }
@@ -74,9 +84,38 @@ export default function Seeds() {
     return seeds.filter((seed) => {
       const matchChurch = validChurchIds.includes(seed.church)
       if (!matchChurch) return false
-      return seed.name.toLowerCase().includes(search.toLowerCase())
+
+      if (search && !seed.name.toLowerCase().includes(search.toLowerCase())) return false
+
+      const age = seed.birthDate
+        ? Math.abs(
+            new Date(Date.now() - new Date(seed.birthDate).getTime()).getUTCFullYear() - 1970,
+          )
+        : 0
+
+      const hasAgeFilter =
+        activeFilters.includes('11 anos') ||
+        activeFilters.includes('12 anos') ||
+        activeFilters.includes('13 anos')
+      if (hasAgeFilter) {
+        const match11 = activeFilters.includes('11 anos') && age === 11
+        const match12 = activeFilters.includes('12 anos') && age === 12
+        const match13 = activeFilters.includes('13 anos') && age === 13
+        if (!match11 && !match12 && !match13) return false
+      }
+
+      const hasGenderFilter = activeFilters.includes('Meninos') || activeFilters.includes('Meninas')
+      if (hasGenderFilter) {
+        const matchBoys = activeFilters.includes('Meninos') && seed.sex === 'Masculino'
+        const matchGirls = activeFilters.includes('Meninas') && seed.sex === 'Feminino'
+        if (!matchBoys && !matchGirls) return false
+      }
+
+      if (activeFilters.includes('Alérgicos') && !seed.hasAllergy) return false
+
+      return true
     })
-  }, [seeds, search, currentChurch, availableChurches])
+  }, [seeds, search, currentChurch, availableChurches, activeFilters])
 
   const handleAddSeed = async (data: any) => {
     if (!currentChurch) return
@@ -219,6 +258,47 @@ export default function Seeds() {
     }
   }
 
+  const handleExport = () => {
+    const headers = [
+      'Nome',
+      'Idade',
+      'Sexo',
+      'Método Entrada',
+      'Alergia',
+      'Detalhes Alergia',
+      'Medicacao',
+      'Responsavel1',
+      'Telefone1',
+    ]
+    const csvContent = [
+      headers.join(';'),
+      ...filteredSeeds.map((s) => {
+        const age = s.birthDate
+          ? Math.abs(new Date(Date.now() - new Date(s.birthDate).getTime()).getUTCFullYear() - 1970)
+          : 0
+        return [
+          `"${s.name}"`,
+          age,
+          s.sex,
+          `"${s.entryMethod}"`,
+          s.hasAllergy ? 'Sim' : 'Não',
+          `"${s.allergyDetails || ''}"`,
+          `"${s.medicationDetails || ''}"`,
+          `"${s.guardian1}"`,
+          `"${s.phone1}"`,
+        ].join(';')
+      }),
+    ].join('\n')
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', 'seeds_export.csv')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   const pbFileUrl = (record: any, fileName: string) => {
     return fileName
       ? `${pb.baseUrl}/api/files/${record.collectionId}/${record.id}/${fileName}`
@@ -327,9 +407,37 @@ export default function Seeds() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <div className="flex overflow-x-auto gap-2 pb-2 -mb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <Badge variant="secondary" className="mr-2 text-sm shrink-0">
+            {filteredSeeds.length} Seeds
+          </Badge>
+          {(
+            ['11 anos', '12 anos', '13 anos', 'Alérgicos', 'Meninos', 'Meninas'] as FilterType[]
+          ).map((filter) => {
+            const isActive = activeFilters.includes(filter)
+            return (
+              <button
+                key={filter}
+                onClick={() =>
+                  setActiveFilters((prev) =>
+                    isActive ? prev.filter((f) => f !== filter) : [...prev, filter],
+                  )
+                }
+                className={cn(
+                  'px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors border shrink-0',
+                  isActive
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                    : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-slate-700',
+                )}
+              >
+                {filter}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      <div className="rounded-md border bg-card shadow-sm overflow-hidden">
+      <div className="rounded-md border bg-card shadow-sm overflow-hidden flex flex-col mb-4">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/30">
@@ -371,6 +479,12 @@ export default function Seeds() {
                           <span className="text-xs text-muted-foreground sm:hidden truncate">
                             {age} anos
                           </span>
+                          {activeFilters.includes('Alérgicos') && seed.hasAllergy && (
+                            <span className="text-xs text-red-500 font-medium truncate mt-0.5">
+                              Alergia: {seed.allergyDetails || 'Sim'}{' '}
+                              {seed.medicationDetails ? ` | Med: ${seed.medicationDetails}` : ''}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -387,6 +501,12 @@ export default function Seeds() {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="flex justify-end">
+        <Button variant="outline" onClick={handleExport} disabled={filteredSeeds.length === 0}>
+          <Download className="mr-2 h-4 w-4" /> Exportar Filtrados
+        </Button>
       </div>
 
       <Dialog
@@ -436,6 +556,35 @@ export default function Seeds() {
                       </span>
                     </div>
                   </div>
+
+                  {(() => {
+                    const seedAtts = attendances.filter(
+                      (a) => a.seed === selectedSeed.id && a.type === 'seed',
+                    )
+                    const presences = seedAtts.filter((a) => a.present === true).length
+                    const absences = seedAtts.filter((a) => a.present === false).length
+                    return (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-green-50 p-4 rounded-lg border border-green-200 flex flex-col items-center justify-center dark:bg-green-900/20 dark:border-green-800">
+                          <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                            {presences}
+                          </span>
+                          <span className="text-xs text-green-800 dark:text-green-300 font-medium uppercase tracking-wider">
+                            Presenças
+                          </span>
+                        </div>
+                        <div className="bg-red-50 p-4 rounded-lg border border-red-200 flex flex-col items-center justify-center dark:bg-red-900/20 dark:border-red-800">
+                          <span className="text-2xl font-bold text-red-600 dark:text-red-400">
+                            {absences}
+                          </span>
+                          <span className="text-xs text-red-800 dark:text-red-300 font-medium uppercase tracking-wider">
+                            Faltas
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })()}
+
                   <div className="grid grid-cols-2 gap-4 text-sm bg-muted/30 p-4 rounded-lg border">
                     <div className="flex flex-col">
                       <span className="text-muted-foreground">Idade</span>

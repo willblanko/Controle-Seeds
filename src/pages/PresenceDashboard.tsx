@@ -68,9 +68,7 @@ export default function PresenceDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Dashboard de Presença</h2>
-          <p className="text-muted-foreground">
-            Análise de participação nos eventos (excluindo reuniões).
-          </p>
+          <p className="text-muted-foreground">Análise de participação nos eventos.</p>
         </div>
         <div className="flex items-center gap-2">
           <ChurchSelector allowGlobal={false} />
