@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T03:10:49.507Z",
+  "generatedAt": "2026-05-21T03:37:43.454Z",
   "collections": [
     {
       "name": "users",
@@ -172,12 +172,6 @@
           "system": false
         },
         {
-          "name": "photo",
-          "type": "url",
-          "required": false,
-          "system": false
-        },
-        {
           "name": "entryMethod",
           "type": "select",
           "required": true,
@@ -270,6 +264,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "photo",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_seeds_church ON seeds (church)"]
@@ -296,12 +296,6 @@
           "name": "name",
           "type": "text",
           "required": true,
-          "system": false
-        },
-        {
-          "name": "photoUrl",
-          "type": "url",
-          "required": false,
           "system": false
         },
         {
@@ -343,6 +337,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "photo",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_team_members_church ON team_members (church)"]
@@ -473,7 +473,7 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["seed", "team"]
+          "selectValues": ["seed", "team", "visitor"]
         },
         {
           "name": "present",
@@ -503,6 +503,12 @@
         },
         {
           "name": "talent_details",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "visitor_name",
           "type": "text",
           "required": false,
           "system": false

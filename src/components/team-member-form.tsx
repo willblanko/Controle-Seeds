@@ -44,7 +44,7 @@ const courseSchema = z
 
 const formSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
-  photoUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
+  photoUrl: z.any().optional(),
   dateOfBirth: z.string().min(1, 'Data de nascimento é obrigatória'),
   role: z.enum(['Líder', 'Membro', 'Selecione']).refine((val) => val !== 'Selecione', {
     message: 'Seleção obrigatória',
@@ -78,7 +78,7 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: initialData?.name || '',
-      photoUrl: initialData?.photoUrl || '',
+      photoUrl: undefined,
       dateOfBirth: initialData?.dateOfBirth || '',
       role: initialData?.role || 'Selecione',
       sex: initialData?.sex || 'Selecione',
@@ -117,8 +117,6 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
       courses: cleanCourses,
     })
   }
-
-  const currentPhoto = form.watch('photoUrl')
 
   return (
     <Form {...form}>
@@ -197,27 +195,20 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
           <FormField
             control={form.control}
             name="photoUrl"
-            render={({ field }) => (
+            render={({ field: { value, onChange, ...field } }) => (
               <FormItem className="sm:col-span-2">
-                <FormLabel>URL da Foto</FormLabel>
-                <div className="flex items-center gap-4">
-                  {currentPhoto && (
-                    <img
-                      src={currentPhoto}
-                      alt="Preview"
-                      className="w-10 h-10 rounded-full object-cover border"
-                      onError={(e) => {
-                        ;(e.target as HTMLImageElement).style.display = 'none'
-                      }}
-                      onLoad={(e) => {
-                        ;(e.target as HTMLImageElement).style.display = 'block'
-                      }}
-                    />
-                  )}
-                  <FormControl>
-                    <Input type="url" placeholder="https://exemplo.com/foto.jpg" {...field} />
-                  </FormControl>
-                </div>
+                <FormLabel>Foto (opcional)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) onChange(file)
+                    }}
+                    {...field}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

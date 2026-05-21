@@ -9,8 +9,6 @@ import {
   UserCog,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
-import { useEffect } from 'react'
-import { useChurch } from '@/contexts/church-context'
 import {
   Sidebar,
   SidebarContent,
@@ -21,13 +19,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import logoImg from '@/assets/logoseedsgreen-bc966.png'
 
 const items = [
@@ -41,17 +32,6 @@ const items = [
 export function AppSidebar() {
   const location = useLocation()
   const { user } = useAuth()
-  const { currentChurch, availableChurches, setCurrentChurch } = useChurch()
-
-  const selectableChurches = availableChurches
-    .filter((c: any) => !c.event_host)
-    .sort((a, b) => a.name.localeCompare(b.name))
-
-  useEffect(() => {
-    if (location.pathname !== '/' && !currentChurch && selectableChurches.length > 0) {
-      setCurrentChurch(selectableChurches[0])
-    }
-  }, [location.pathname, currentChurch, selectableChurches, setCurrentChurch])
 
   return (
     <Sidebar>
@@ -64,41 +44,6 @@ export function AppSidebar() {
         </Link>
       </SidebarHeader>
       <SidebarContent>
-        {selectableChurches.length > 0 && (
-          <div className="px-4 py-3 border-b border-border/50 bg-muted/10 flex flex-col gap-1.5">
-            {selectableChurches.length > 1 || user?.role === 'admin' ? (
-              <Select
-                value={currentChurch?.id || 'all'}
-                onValueChange={(val) =>
-                  setCurrentChurch(
-                    val === 'all' ? null : selectableChurches.find((c) => c.id === val)!,
-                  )
-                }
-              >
-                <SelectTrigger className="h-8 bg-background border-dashed text-xs shadow-none">
-                  <SelectValue placeholder="Selecione a igreja" />
-                </SelectTrigger>
-                <SelectContent>
-                  {location.pathname === '/' && (
-                    <SelectItem value="all" className="text-xs font-semibold text-primary">
-                      Visão Global
-                    </SelectItem>
-                  )}
-                  {selectableChurches.map((c) => (
-                    <SelectItem key={c.id} value={c.id} className="text-xs">
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <div className="text-sm font-semibold flex items-center gap-2 text-foreground/90">
-                <Church className="h-4 w-4 text-primary" />
-                <span className="truncate">{currentChurch?.name}</span>
-              </div>
-            )}
-          </div>
-        )}
         <SidebarGroup>
           <SidebarGroupContent className="pt-2">
             <SidebarMenu>

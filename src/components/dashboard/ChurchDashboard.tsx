@@ -26,10 +26,7 @@ export function ChurchDashboard() {
       ? (filteredSeeds.length / filteredTeam.length).toFixed(1)
       : filteredSeeds.length
   const filteredEvents = events.filter(
-    (e) =>
-      validChurchIds.includes(e.church) &&
-      e.category.toLowerCase() !== 'reunião' &&
-      e.category.toLowerCase() !== 'reuniao',
+    (e) => validChurchIds.includes(e.church) || e.category === 'Camp',
   )
   const filteredAttendances = attendances
 

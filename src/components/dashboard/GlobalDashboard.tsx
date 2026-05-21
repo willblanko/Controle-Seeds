@@ -74,13 +74,7 @@ export function GlobalDashboard() {
   const totalTeam = teamMembers.length
   const seedToTeamRatio = totalTeam > 0 ? (totalSeeds / totalTeam).toFixed(1) : totalSeeds
   const activeEvents = useMemo(
-    () =>
-      events.filter(
-        (e) =>
-          e.date >= nowString &&
-          e.category.toLowerCase() !== 'reunião' &&
-          e.category.toLowerCase() !== 'reuniao',
-      ).length,
+    () => events.filter((e) => e.date >= nowString).length,
     [events, nowString],
   )
   const totalPresent = useMemo(() => attendances.filter((a) => a.present).length, [attendances])
@@ -88,12 +82,7 @@ export function GlobalDashboard() {
   // Charts Data
   const attendanceData = useMemo(() => {
     const pastEvents = [...events]
-      .filter(
-        (e) =>
-          e.date < nowString &&
-          e.category.toLowerCase() !== 'reunião' &&
-          e.category.toLowerCase() !== 'reuniao',
-      )
+      .filter((e) => e.date < nowString)
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-10)
 
@@ -156,12 +145,7 @@ export function GlobalDashboard() {
   const upcomingEvents = useMemo(
     () =>
       [...events]
-        .filter(
-          (e) =>
-            e.date >= nowString &&
-            e.category.toLowerCase() !== 'reunião' &&
-            e.category.toLowerCase() !== 'reuniao',
-        )
+        .filter((e) => e.date >= nowString)
         .sort((a, b) => a.date.localeCompare(b.date))
         .slice(0, 5),
     [events, nowString],
@@ -238,7 +222,7 @@ export function GlobalDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalTeam}</div>
-            <p className="text-xs text-muted-foreground mt-1">Voluntários e líderes da rede</p>
+            <p className="text-xs text-muted-foreground mt-1">Líderes e membros de equipe</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-md transition-shadow">
@@ -268,7 +252,7 @@ export function GlobalDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{seedToTeamRatio} : 1</div>
-            <p className="text-xs text-muted-foreground mt-1">Seeds por voluntário</p>
+            <p className="text-xs text-muted-foreground mt-1">Seeds por membro de equipe</p>
           </CardContent>
         </Card>
       </div>
