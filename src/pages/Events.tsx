@@ -1,5 +1,14 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Plus, Search, Calendar as CalendarIcon, Edit, Trash2, Eye } from 'lucide-react'
+import {
+  Plus,
+  Search,
+  Calendar as CalendarIcon,
+  Edit,
+  Trash2,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -32,8 +41,16 @@ export default function Events() {
   const [search, setSearch] = useState('')
   const [events, setEvents] = useState<any[]>([])
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [currentDate, setCurrentDate] = useState(
+    new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+  )
   const { toast } = useToast()
   const navigate = useNavigate()
+
+  const nextMonth = () =>
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
+  const prevMonth = () =>
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
 
   const loadData = async () => {
     try {
@@ -59,7 +76,8 @@ export default function Events() {
 
     return events
       .filter((e) => {
-        const matchChurch = validChurchIds.includes(e.church) || e.category === 'Camp'
+        const isGlobal = e.category === 'Camp' || e.category === 'Connection' || !e.church
+        const matchChurch = isGlobal || validChurchIds.includes(e.church)
         if (!matchChurch) return false
         return e.title.toLowerCase().includes(search.toLowerCase())
       })
@@ -74,14 +92,15 @@ export default function Events() {
     .reverse()
 
   const handleCreate = async (data: any) => {
-    if (!currentChurch && data.category !== 'Camp') {
+    const isGlobal = data.category === 'Camp' || data.category === 'Connection'
+    if (!currentChurch && !isGlobal) {
       toast({ title: 'Erro', description: 'Selecione uma igreja.', variant: 'destructive' })
       return
     }
     try {
       await pb.collection('events').create({
         ...data,
-        church: currentChurch?.id || '',
+        church: isGlobal ? '' : currentChurch?.id || '',
       })
       await loadData()
       setIsCreateOpen(false)
@@ -91,13 +110,20 @@ export default function Events() {
     }
   }
 
+  const getEventColor = (e: any) => {
+    if (e.category === 'Camp') return 'bg-orange-500'
+    if (e.category === 'Connection') return 'bg-blue-500'
+    const isFuture = new Date(e.date + 'T12:00:00') >= new Date(new Date().setHours(0, 0, 0, 0))
+    return isFuture ? 'bg-green-600' : 'bg-gray-500'
+  }
+
   const renderEventRow = (event: any) => {
     const isFuture = new Date(event.date + 'T12:00:00') >= new Date(new Date().setHours(0, 0, 0, 0))
     return (
       <TableRow key={event.id}>
         <TableCell>
           <div className="flex items-center gap-3">
-            <div className={`w-3 h-3 rounded-full ${isFuture ? 'bg-green-500' : 'bg-gray-400'}`} />
+            <div className={`w-3 h-3 rounded-full ${getEventColor(event)}`} />
             <div className="font-semibold">{event.title}</div>
           </div>
         </TableCell>
@@ -171,38 +197,109 @@ export default function Events() {
         </TabsList>
 
         <TabsContent value="calendar" className="border rounded-md bg-card p-4">
+          <div className="flex items-center justify-between mb-4">
+            <Button variant="outline" size="icon" onClick={prevMonth}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <h2 className="font-semibold text-lg">
+              {currentDate
+                .toLocaleString('pt-BR', { month: 'long', year: 'numeric' })
+                .replace(/^\w/, (c) => c.toUpperCase())}
+            </h2>
+            <Button variant="outline" size="icon" onClick={nextMonth}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-4 mb-4 text-xs">
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-orange-500 rounded-full"></div> Camp
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div> Connection
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-green-600 rounded-full"></div> Próximos
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-gray-500 rounded-full"></div> Passados
+            </div>
+          </div>
           <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden">
             {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day) => (
               <div key={day} className="bg-muted p-2 text-center text-sm font-semibold">
                 {day}
               </div>
             ))}
-            {Array.from({ length: 35 }).map((_, i) => {
-              const dayEvents = filteredEvents.slice(i, i + 1) // Simplified calendar logic for demo
-              return (
-                <div key={i} className="bg-background p-2 min-h-[100px] border-t border-border">
-                  <div className="text-xs text-muted-foreground mb-1">{i + 1}</div>
-                  <div className="flex flex-col gap-1">
-                    {filteredEvents.map((e) => {
-                      const d = new Date(e.date + 'T12:00:00')
-                      if (d.getDate() === i + 1) {
-                        const isFuture = d >= new Date(new Date().setHours(0, 0, 0, 0))
-                        return (
-                          <div
-                            key={e.id}
-                            onClick={() => navigate(`/eventos/${e.id}`)}
-                            className={`text-[10px] p-1 rounded cursor-pointer truncate text-white ${isFuture ? 'bg-green-600' : 'bg-gray-500'}`}
-                          >
-                            {e.title}
-                          </div>
-                        )
-                      }
-                      return null
-                    })}
+            {(() => {
+              const daysInMonth = new Date(
+                currentDate.getFullYear(),
+                currentDate.getMonth() + 1,
+                0,
+              ).getDate()
+              const firstDayOfMonth = new Date(
+                currentDate.getFullYear(),
+                currentDate.getMonth(),
+                1,
+              ).getDay()
+              const weeks = Math.ceil((daysInMonth + firstDayOfMonth) / 7)
+
+              return Array.from({ length: weeks * 7 }).map((_, i) => {
+                const dayNumber = i - firstDayOfMonth + 1
+                const isCurrentMonth = dayNumber > 0 && dayNumber <= daysInMonth
+                const currentCellDate = isCurrentMonth
+                  ? new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNumber)
+                  : null
+
+                return (
+                  <div
+                    key={i}
+                    className={`bg-background p-2 min-h-[100px] border-t border-border ${!isCurrentMonth ? 'opacity-30 bg-muted/50' : ''}`}
+                  >
+                    <div className="text-xs text-muted-foreground mb-1">
+                      {isCurrentMonth ? dayNumber : ''}
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      {isCurrentMonth &&
+                        filteredEvents.map((e) => {
+                          const d = new Date(e.date + 'T12:00:00')
+                          const isMatch =
+                            d.getDate() === dayNumber &&
+                            d.getMonth() === currentDate.getMonth() &&
+                            d.getFullYear() === currentDate.getFullYear()
+
+                          let isRangeMatch = false
+                          if (e.category === 'Camp' && e.endDate) {
+                            const start = new Date(e.date + 'T12:00:00')
+                            const end = new Date(e.endDate + 'T12:00:00')
+                            const cell = new Date(
+                              currentDate.getFullYear(),
+                              currentDate.getMonth(),
+                              dayNumber,
+                              12,
+                              0,
+                              0,
+                            )
+                            isRangeMatch = cell >= start && cell <= end
+                          }
+
+                          if (isMatch || isRangeMatch) {
+                            return (
+                              <div
+                                key={`${e.id}-${dayNumber}`}
+                                onClick={() => navigate(`/eventos/${e.id}`)}
+                                className={`text-[10px] p-1 rounded cursor-pointer truncate text-white ${getEventColor(e)}`}
+                              >
+                                {e.title}
+                              </div>
+                            )
+                          }
+                          return null
+                        })}
+                    </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })
+            })()}
           </div>
         </TabsContent>
 

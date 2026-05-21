@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { Check, UserPlus, MapPin, Clock, Info, Trash2, ArrowLeft } from 'lucide-react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import {
+  Check,
+  UserPlus,
+  MapPin,
+  Clock,
+  Info,
+  Trash2,
+  ArrowLeft,
+  ClipboardCheck,
+  Link as LinkIcon,
+} from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -15,6 +25,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
 
@@ -87,13 +104,20 @@ export default function EventDetail() {
 
       <div className="flex flex-col gap-4 border-b pb-6">
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <h1 className="text-3xl font-bold tracking-tight">{event.title}</h1>
             <Badge>{event.category}</Badge>
           </div>
-          <Button variant="destructive" size="sm" onClick={() => setIsDeleting(true)}>
-            <Trash2 className="w-4 h-4 mr-2" /> Excluir Evento
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm" className="hidden sm:flex">
+              <Link to={`/eventos/${id}/check-in`}>
+                <ClipboardCheck className="w-4 h-4 mr-2" /> Presença
+              </Link>
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => setIsDeleting(true)}>
+              <Trash2 className="w-4 h-4 mr-2" /> Excluir
+            </Button>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
@@ -113,6 +137,35 @@ export default function EventDetail() {
             <p>{event.description}</p>
           </div>
         )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Button asChild variant="default" className="w-full sm:hidden h-12">
+          <Link to={`/eventos/${id}/check-in`}>
+            <ClipboardCheck className="w-4 h-4 mr-2" /> Controle de Presença
+          </Link>
+        </Button>
+
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="secondary" className="w-full h-12">
+              <LinkIcon className="w-4 h-4 mr-2" /> Link de Presença
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Link de Presença Rápida</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col space-y-4 py-4">
+              <p className="text-sm text-muted-foreground">
+                Use o botão abaixo para abrir a interface simplificada de check-in para este evento.
+              </p>
+              <Button asChild className="w-full h-12 text-lg">
+                <Link to={`/eventos/${id}/check-in`}>Abrir Check-in</Link>
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <AlertDialog open={isDeleting} onOpenChange={setIsDeleting}>

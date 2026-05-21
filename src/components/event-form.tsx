@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/use-auth'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -20,29 +21,47 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-const formSchema = z.object({
-  title: z.string().min(1, 'Título é obrigatório'),
-  description: z.string().optional(),
-  date: z.string().min(1, 'Data é obrigatória'),
-  time: z.string().min(1, 'Hora é obrigatória'),
-  location: z.string().optional(),
-  category: z.string().min(1, 'Categoria é obrigatória'),
-})
+const formSchema = z
+  .object({
+    title: z.string().min(1, 'Título é obrigatório'),
+    description: z.string().optional(),
+    date: z.string().min(1, 'Data é obrigatória'),
+    endDate: z.string().optional(),
+    time: z.string().min(1, 'Hora é obrigatória'),
+    location: z.string().optional(),
+    category: z.string().min(1, 'Categoria é obrigatória'),
+  })
+  .refine(
+    (data) => {
+      if (data.category === 'Camp' && !data.endDate) {
+        return false
+      }
+      return true
+    },
+    {
+      message: 'Data de término é obrigatória para Camp',
+      path: ['endDate'],
+    },
+  )
 
 type FormValues = z.infer<typeof formSchema>
 
 export function EventForm({ initialData, onSubmit, onCancel }: any) {
+  const { user } = useAuth()
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: initialData?.title || '',
       description: initialData?.description || '',
       date: initialData?.date || '',
+      endDate: initialData?.endDate || '',
       time: initialData?.time || '',
       location: initialData?.location || '',
       category: initialData?.category || '',
     },
   })
+
+  const category = form.watch('category')
 
   return (
     <Form {...form}>
@@ -66,7 +85,7 @@ export function EventForm({ initialData, onSubmit, onCancel }: any) {
             name="date"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Data*</FormLabel>
+                <FormLabel>{category === 'Camp' ? 'Data Início*' : 'Data*'}</FormLabel>
                 <FormControl>
                   <Input type="date" {...field} />
                 </FormControl>
@@ -74,20 +93,53 @@ export function EventForm({ initialData, onSubmit, onCancel }: any) {
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="time"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Horário*</FormLabel>
-                <FormControl>
-                  <Input type="time" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {category === 'Camp' ? (
+            <FormField
+              control={form.control}
+              name="endDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Data Término*</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : (
+            <FormField
+              control={form.control}
+              name="time"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Horário*</FormLabel>
+                  <FormControl>
+                    <Input type="time" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
         </div>
+        {category === 'Camp' && (
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="time"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Horário*</FormLabel>
+                  <FormControl>
+                    <Input type="time" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -103,10 +155,16 @@ export function EventForm({ initialData, onSubmit, onCancel }: any) {
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="Culto">Culto</SelectItem>
-                    <SelectItem value="Camp">Camp</SelectItem>
-                    <SelectItem value="Connection">Connection</SelectItem>
+                    <SelectItem value="Hangout">Hangout</SelectItem>
+                    <SelectItem value="Show de Talentos">Show de Talentos</SelectItem>
                     <SelectItem value="Reunião">Reunião</SelectItem>
                     <SelectItem value="Outro">Outro</SelectItem>
+                    {user?.role === 'admin' && (
+                      <>
+                        <SelectItem value="Camp">Camp</SelectItem>
+                        <SelectItem value="Connection">Connection</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
                 <FormMessage />
