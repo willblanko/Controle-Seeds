@@ -206,10 +206,20 @@ export default function Events() {
     }
   }
 
+  const validChurchIds = currentChurch ? [currentChurch.id] : []
+  if (currentChurch) {
+    const guestIds = availableChurches
+      .filter((c: any) => c.event_host === currentChurch.id)
+      .map((c: any) => c.id)
+    validChurchIds.push(...guestIds)
+  }
+
   const now = new Date().toISOString().split('T')[0]
   const churchEvents = events.filter((e) => {
+    if (e.category.toLowerCase() === 'reunião' || e.category.toLowerCase() === 'reuniao')
+      return false
     if (!e.church || e.category === 'Camp' || e.category === 'Connection') return true
-    return user?.role === 'admin' && !currentChurch ? true : e.church === currentChurch?.id
+    return user?.role === 'admin' && !currentChurch ? true : validChurchIds.includes(e.church)
   })
 
   const upcomingEvents = churchEvents
@@ -220,13 +230,18 @@ export default function Events() {
     .sort((a, b) => b.date.localeCompare(a.date))
 
   const calendarEvents = events.filter((e) => {
+    if (e.category.toLowerCase() === 'reunião' || e.category.toLowerCase() === 'reuniao')
+      return false
     if (categoryFilter !== 'all' && e.category !== categoryFilter) return false
     if (e.category === 'Camp') return true
     if (user?.role !== 'admin' && currentChurch) {
-      return e.church === currentChurch.id || !e.church || e.category === 'Connection'
+      return validChurchIds.includes(e.church) || !e.church || e.category === 'Connection'
     }
     if (!e.church || e.category === 'Connection') return true
-    return e.church === calendarChurch
+    return (
+      e.church === calendarChurch ||
+      availableChurches.find((c: any) => c.id === e.church)?.event_host === calendarChurch
+    )
   })
 
   const daysInMonth = eachDayOfInterval({
@@ -515,11 +530,13 @@ export default function Events() {
                       <SelectValue placeholder="Selecione a Igreja" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableChurches.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
+                      {availableChurches
+                        .filter((c: any) => !c.event_host)
+                        .map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>

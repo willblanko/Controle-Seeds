@@ -9,6 +9,7 @@ import {
   UserCog,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
+import { useEffect } from 'react'
 import { useChurch } from '@/contexts/church-context'
 import {
   Sidebar,
@@ -42,6 +43,16 @@ export function AppSidebar() {
   const { user } = useAuth()
   const { currentChurch, availableChurches, setCurrentChurch } = useChurch()
 
+  const selectableChurches = availableChurches
+    .filter((c: any) => !c.event_host)
+    .sort((a, b) => a.name.localeCompare(b.name))
+
+  useEffect(() => {
+    if (location.pathname !== '/' && !currentChurch && selectableChurches.length > 0) {
+      setCurrentChurch(selectableChurches[0])
+    }
+  }, [location.pathname, currentChurch, selectableChurches, setCurrentChurch])
+
   return (
     <Sidebar>
       <SidebarHeader className="h-16 flex items-center justify-center px-4 border-b border-border/50 bg-background">
@@ -53,28 +64,27 @@ export function AppSidebar() {
         </Link>
       </SidebarHeader>
       <SidebarContent>
-        {availableChurches.length > 0 && (
+        {selectableChurches.length > 0 && (
           <div className="px-4 py-3 border-b border-border/50 bg-muted/10 flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-              Contexto Atual
-            </span>
-            {availableChurches.length > 1 || user?.role === 'admin' ? (
+            {selectableChurches.length > 1 || user?.role === 'admin' ? (
               <Select
                 value={currentChurch?.id || 'all'}
                 onValueChange={(val) =>
                   setCurrentChurch(
-                    val === 'all' ? null : availableChurches.find((c) => c.id === val)!,
+                    val === 'all' ? null : selectableChurches.find((c) => c.id === val)!,
                   )
                 }
               >
                 <SelectTrigger className="h-8 bg-background border-dashed text-xs shadow-none">
-                  <SelectValue placeholder="Selecione o contexto" />
+                  <SelectValue placeholder="Selecione a igreja" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all" className="text-xs font-semibold text-primary">
-                    Visão Global (Todas)
-                  </SelectItem>
-                  {availableChurches.map((c) => (
+                  {location.pathname === '/' && (
+                    <SelectItem value="all" className="text-xs font-semibold text-primary">
+                      Visão Global
+                    </SelectItem>
+                  )}
+                  {selectableChurches.map((c) => (
                     <SelectItem key={c.id} value={c.id} className="text-xs">
                       {c.name}
                     </SelectItem>

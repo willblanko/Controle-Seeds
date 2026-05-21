@@ -34,7 +34,7 @@ export default function PresenceDashboard() {
         e.date < now &&
         e.category.toLowerCase() !== 'reunião' &&
         e.category.toLowerCase() !== 'reuniao' &&
-        (isGlobalAdmin ? true : e.church === currentChurch?.id),
+        (isGlobalAdmin ? true : validChurchIds.includes(e.church)),
     )
     .sort((a, b) => a.date.localeCompare(b.date))
 

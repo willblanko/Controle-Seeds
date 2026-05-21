@@ -114,7 +114,7 @@ function calculateAge(dateStr: string) {
 
 export default function Seeds() {
   const { seeds, events, attendances, addSeed, updateSeed } = useApp()
-  const { currentChurch } = useChurch()
+  const { currentChurch, availableChurches } = useChurch()
   const { user } = useAuth()
   const { toast } = useToast()
   const [search, setSearch] = useState('')
@@ -125,11 +125,6 @@ export default function Seeds() {
   const [editingSeedId, setEditingSeedId] = useState<string | null>(null)
 
   const [quickFilter, setQuickFilter] = useState<string>('all')
-  const [churches, setChurches] = useState<any[]>([])
-
-  useEffect(() => {
-    pb.collection('churches').getFullList({ sort: 'name' }).then(setChurches).catch(console.error)
-  }, [])
 
   const allAllergies = useMemo(
     () =>
@@ -175,7 +170,14 @@ export default function Seeds() {
   })
 
   const filteredSeeds = seeds.filter((s) => {
-    const matchChurch = !currentChurch ? true : s.church === currentChurch?.id
+    const validChurchIds = currentChurch ? [currentChurch.id] : []
+    if (currentChurch) {
+      const guestIds = availableChurches
+        .filter((c: any) => c.event_host === currentChurch.id)
+        .map((c: any) => c.id)
+      validChurchIds.push(...guestIds)
+    }
+    const matchChurch = !currentChurch ? true : validChurchIds.includes(s.church)
     if (!matchChurch) return false
 
     const matchSearch =
@@ -235,7 +237,7 @@ export default function Seeds() {
         if (cols.length < 2) continue
 
         const name = cols[0] || 'Sem Nome'
-        const churchId = currentChurch?.id || churches[0]?.id
+        const churchId = currentChurch?.id || availableChurches.find((c: any) => !c.event_host)?.id
 
         if (!churchId) {
           failed++
@@ -403,9 +405,23 @@ export default function Seeds() {
           <Button
             variant="outline"
             className="shrink-0"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              const csvContent =
+                'Nome,Responsavel 1,Telefone 1\nExemplo Seed,Responsavel Exemplo,11999999999\n'
+              const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+              const url = URL.createObjectURL(blob)
+              const link = document.createElement('a')
+              link.setAttribute('href', url)
+              link.setAttribute('download', 'modelo_seeds.csv')
+              document.body.appendChild(link)
+              link.click()
+              document.body.removeChild(link)
+            }}
           >
-            <Upload className="mr-2 h-4 w-4" /> Importar Tabela
+            Baixar Modelo
+          </Button>
+          <Button className="shrink-0" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="mr-2 h-4 w-4" /> Importar Seeds
           </Button>
           <Sheet open={openNew} onOpenChange={setOpenNew}>
             <SheetTrigger asChild>
@@ -444,11 +460,13 @@ export default function Seeds() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {churches.map((c) => (
-                                  <SelectItem key={c.id} value={c.id}>
-                                    {c.name}
-                                  </SelectItem>
-                                ))}
+                                {availableChurches
+                                  .filter((c: any) => !c.event_host)
+                                  .map((c: any) => (
+                                    <SelectItem key={c.id} value={c.id}>
+                                      {c.name}
+                                    </SelectItem>
+                                  ))}
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -813,7 +831,7 @@ export default function Seeds() {
               </TableRow>
             ) : (
               filteredSeeds.map((seed, i) => {
-                const church = churches.find((c) => c.id === seed.church)
+                const church = availableChurches.find((c: any) => c.id === seed.church)
                 return (
                   <TableRow
                     key={seed.id}
@@ -923,12 +941,12 @@ export default function Seeds() {
                             const isGlobalEvent =
                               !e.church || e.category === 'Camp' || e.category === 'Connection'
                             const validChurchIds = isGlobalEvent
-                              ? churches.map((c) => c.id)
+                              ? availableChurches.map((c: any) => c.id)
                               : ([e.church].filter(Boolean) as string[])
                             if (!isGlobalEvent) {
-                              const guestIds = churches
-                                .filter((c) => (c as any).event_host === e.church)
-                                .map((c) => c.id)
+                              const guestIds = availableChurches
+                                .filter((c: any) => c.event_host === e.church)
+                                .map((c: any) => c.id)
                               validChurchIds.push(...guestIds)
                             }
                             return validChurchIds.includes(selectedSeed.church)
@@ -948,7 +966,7 @@ export default function Seeds() {
                 <div className="col-span-2 flex flex-col gap-1">
                   <span className="text-muted-foreground">Igreja</span>
                   <span className="font-medium">
-                    {churches.find((c) => c.id === selectedSeed.church)?.name || '-'}
+                    {availableChurches.find((c: any) => c.id === selectedSeed.church)?.name || '-'}
                   </span>
                 </div>
                 <div className="flex flex-col gap-1">

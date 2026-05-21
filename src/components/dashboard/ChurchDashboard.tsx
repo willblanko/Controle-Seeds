@@ -9,15 +9,28 @@ import { Badge } from '@/components/ui/badge'
 
 export function ChurchDashboard() {
   const { seeds, events, attendances, teamMembers } = useApp()
-  const { currentChurch } = useChurch()
+  const { currentChurch, availableChurches } = useChurch()
 
-  const filteredSeeds = seeds.filter((s) => s.church === currentChurch?.id)
-  const filteredTeam = teamMembers.filter((t) => t.church === currentChurch?.id)
+  const validChurchIds = currentChurch ? [currentChurch.id] : []
+  if (currentChurch) {
+    const guestIds = availableChurches
+      .filter((c: any) => c.event_host === currentChurch.id)
+      .map((c: any) => c.id)
+    validChurchIds.push(...guestIds)
+  }
+
+  const filteredSeeds = seeds.filter((s) => validChurchIds.includes(s.church))
+  const filteredTeam = teamMembers.filter((t) => validChurchIds.includes(t.church))
   const seedToTeamRatio =
     filteredTeam.length > 0
       ? (filteredSeeds.length / filteredTeam.length).toFixed(1)
       : filteredSeeds.length
-  const filteredEvents = events.filter((e) => e.church === currentChurch?.id)
+  const filteredEvents = events.filter(
+    (e) =>
+      validChurchIds.includes(e.church) &&
+      e.category.toLowerCase() !== 'reunião' &&
+      e.category.toLowerCase() !== 'reuniao',
+  )
   const filteredAttendances = attendances
 
   const totalSeeds = filteredSeeds.length
@@ -36,17 +49,14 @@ export function ChurchDashboard() {
   const lastEvent = pastEvents
     .slice()
     .reverse()
-    .find((e) => {
-      const cat = e.category.toLowerCase()
-      return cat !== 'reunião' && cat !== 'reuniao'
-    })
+    .find((e) => true)
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
-          <p className="text-muted-foreground">Visão geral do acompanhamento das Seeds.</p>
+          <p className="text-muted-foreground">Visão geral do acompanhamento dos Seeds.</p>
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline">
@@ -81,7 +91,7 @@ export function ChurchDashboard() {
           title="Proporção Seed/Equipe"
           icon={Users}
           value={`${seedToTeamRatio} : 1`}
-          desc="Seeds por voluntário"
+          desc="Seeds por membro de equipe"
         />
       </div>
 

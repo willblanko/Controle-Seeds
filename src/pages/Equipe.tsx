@@ -47,7 +47,7 @@ type FilterRole = 'Todos' | 'Líderes' | 'Membros' | 'CME' | 'EBM' | 'TE'
 
 export default function Equipe() {
   const { teamMembers, addTeamMember, updateTeamMember } = useApp()
-  const { currentChurch } = useChurch()
+  const { currentChurch, availableChurches } = useChurch()
   const { user } = useAuth()
   const [search, setSearch] = useState('')
   const [filterRole, setFilterRole] = useState<FilterRole>('Todos')
@@ -60,9 +60,17 @@ export default function Equipe() {
   const { toast } = useToast()
 
   const filteredMembers = useMemo(() => {
+    const validChurchIds = currentChurch ? [currentChurch.id] : []
+    if (currentChurch) {
+      const guestIds = availableChurches
+        .filter((c: any) => c.event_host === currentChurch.id)
+        .map((c: any) => c.id)
+      validChurchIds.push(...guestIds)
+    }
+
     return teamMembers.filter((member) => {
       const matchChurch =
-        user?.role === 'admin' && !currentChurch ? true : member.church === currentChurch?.id
+        user?.role === 'admin' && !currentChurch ? true : validChurchIds.includes(member.church)
       if (!matchChurch) return false
       const matchesSearch = member.name.toLowerCase().includes(search.toLowerCase())
       let matchesRole = true
@@ -216,6 +224,24 @@ export default function Equipe() {
           <p className="text-muted-foreground">Gerencie líderes e membros da sua equipe.</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="shrink-0"
+            onClick={() => {
+              const csvContent =
+                'Nome;Nascimento;Igreja;EBM;TE\nExemplo Membro;01/01/2000;Sede;Sim;Não\n'
+              const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+              const url = URL.createObjectURL(blob)
+              const link = document.createElement('a')
+              link.setAttribute('href', url)
+              link.setAttribute('download', 'modelo_equipe.csv')
+              document.body.appendChild(link)
+              link.click()
+              document.body.removeChild(link)
+            }}
+          >
+            Baixar Modelo
+          </Button>
           <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2 shrink-0">

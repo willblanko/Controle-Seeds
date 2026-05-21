@@ -15,6 +15,9 @@ import {
 
 export default function SelectChurch() {
   const { availableChurches, setCurrentChurch, loadingChurches } = useChurch()
+  const selectableChurches = availableChurches
+    .filter((c: any) => !c.event_host)
+    .sort((a, b) => a.name.localeCompare(b.name))
   const { signOut, user } = useAuth()
   const navigate = useNavigate()
   const [selectedChurchId, setSelectedChurchId] = useState<string>('')
@@ -24,14 +27,14 @@ export default function SelectChurch() {
       navigate('/', { replace: true })
       return
     }
-    if (!loadingChurches && availableChurches.length === 1) {
-      setCurrentChurch(availableChurches[0])
+    if (!loadingChurches && selectableChurches.length === 1) {
+      setCurrentChurch(selectableChurches[0])
       navigate('/', { replace: true })
     }
-  }, [availableChurches, loadingChurches, navigate, setCurrentChurch, user])
+  }, [selectableChurches, loadingChurches, navigate, setCurrentChurch, user])
 
   const handleContinue = () => {
-    const church = availableChurches.find((c) => c.id === selectedChurchId)
+    const church = selectableChurches.find((c) => c.id === selectedChurchId)
     if (church) {
       setCurrentChurch(church)
       navigate('/', { replace: true })
@@ -42,7 +45,7 @@ export default function SelectChurch() {
     return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
   }
 
-  if (availableChurches.length === 0) {
+  if (selectableChurches.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
         <Card className="w-full max-w-md shadow-lg animate-fade-in-up">
@@ -86,7 +89,7 @@ export default function SelectChurch() {
                   <SelectValue placeholder="Selecione uma igreja..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableChurches.map((church) => (
+                  {selectableChurches.map((church) => (
                     <SelectItem key={church.id} value={church.id}>
                       {church.name}
                     </SelectItem>

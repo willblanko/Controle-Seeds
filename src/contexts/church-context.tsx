@@ -44,8 +44,9 @@ export function ChurchProvider({ children }: { children: ReactNode }) {
 
     setLoadingChurches(true)
     pb.collection('churches')
-      .getFullList<Church>()
+      .getFullList<Church>({ sort: 'name' })
       .then((churches) => {
+        churches.sort((a, b) => a.name.localeCompare(b.name))
         setAvailableChurches(churches)
         if (user.role === 'admin') {
           if (currentChurch && !churches.find((c) => c.id === currentChurch.id)) {
