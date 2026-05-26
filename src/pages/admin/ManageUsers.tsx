@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Plus, UserCog, Pencil, Trash2 } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { useToast } from '@/hooks/use-toast'
+import { format, parseISO } from 'date-fns'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -41,6 +42,15 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { extractFieldErrors } from '@/lib/pocketbase/errors'
+
+const formatLastLogin = (isoString?: string) => {
+  if (!isoString) return 'Nunca acessou'
+  try {
+    return format(parseISO(isoString), 'dd/MM/yyyy HH:mm')
+  } catch (e) {
+    return 'Nunca acessou'
+  }
+}
 
 export default function ManageUsers() {
   const [users, setUsers] = useState<any[]>([])
@@ -212,6 +222,7 @@ export default function ManageUsers() {
               <TableHead>Email</TableHead>
               <TableHead>Nível de Acesso</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Último Login</TableHead>
               <TableHead>Igrejas Associadas</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -246,6 +257,11 @@ export default function ManageUsers() {
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">
+                      {formatLastLogin(u.last_login)}
+                    </span>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {uChurches.map((c, i) =>
                         c ? (
@@ -274,7 +290,7 @@ export default function ManageUsers() {
             })}
             {users.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   Nenhum usuário cadastrado.
                 </TableCell>
               </TableRow>
