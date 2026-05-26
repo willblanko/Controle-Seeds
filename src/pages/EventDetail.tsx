@@ -1,18 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import {
-  Check,
-  UserPlus,
-  MapPin,
-  Clock,
-  Info,
-  Trash2,
-  ArrowLeft,
-  ClipboardCheck,
-  Link as LinkIcon,
-} from 'lucide-react'
+import { Check, MapPin, Clock, Info, Trash2, ArrowLeft, ClipboardCheck, Edit } from 'lucide-react'
 
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -34,6 +23,7 @@ import {
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
+import { EventForm } from '@/components/event-form'
 
 export default function EventDetail() {
   const { id } = useParams()
@@ -42,8 +32,8 @@ export default function EventDetail() {
 
   const [event, setEvent] = useState<any>(null)
   const [attendances, setAttendances] = useState<any[]>([])
-  const [visitorName, setVisitorName] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
 
   const loadData = async () => {
     if (!id) return
@@ -74,17 +64,12 @@ export default function EventDetail() {
     }
   }
 
-  const handleAddVisitor = async () => {
-    if (!visitorName.trim()) return
+  const handleEditEvent = async (data: any) => {
+    if (!id) return
     try {
-      await pb.collection('attendances').create({
-        event: id,
-        type: 'visitor',
-        visitor_name: visitorName,
-        present: true,
-      })
-      toast({ title: 'Visitante adicionado e marcado como presente.' })
-      setVisitorName('')
+      await pb.collection('events').update(id, data)
+      toast({ title: 'Evento atualizado com sucesso.' })
+      setIsEditing(false)
       loadData()
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' })
@@ -108,12 +93,29 @@ export default function EventDetail() {
             <h1 className="text-3xl font-bold tracking-tight">{event.title}</h1>
             <Badge>{event.category}</Badge>
           </div>
-          <div className="flex items-center gap-2">
-            <Button asChild variant="outline" size="sm" className="hidden sm:flex">
+          <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
+            <Button asChild variant="outline" size="sm">
               <Link to={`/eventos/${id}/check-in`}>
                 <ClipboardCheck className="w-4 h-4 mr-2" /> Presença
               </Link>
             </Button>
+            <Dialog open={isEditing} onOpenChange={setIsEditing}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Edit className="w-4 h-4 mr-2" /> Editar
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Editar Evento</DialogTitle>
+                </DialogHeader>
+                <EventForm
+                  initialData={event}
+                  onSubmit={handleEditEvent}
+                  onCancel={() => setIsEditing(false)}
+                />
+              </DialogContent>
+            </Dialog>
             <Button variant="destructive" size="sm" onClick={() => setIsDeleting(true)}>
               <Trash2 className="w-4 h-4 mr-2" /> Excluir
             </Button>
@@ -122,7 +124,12 @@ export default function EventDetail() {
         <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <Clock className="w-4 h-4" />
-            {new Date(event.date + 'T12:00:00').toLocaleDateString('pt-BR')} às {event.time}
+            {new Date(event.date + 'T12:00:00').toLocaleDateString('pt-BR')}
+            {event.category === 'Camp' &&
+              event.endDate &&
+              ` a ${new Date(event.endDate + 'T12:00:00').toLocaleDateString('pt-BR')}`}
+            {' às '}
+            {event.time}
           </div>
           {event.location && (
             <div className="flex items-center gap-1">
@@ -134,38 +141,9 @@ export default function EventDetail() {
         {event.description && (
           <div className="flex items-start gap-1 text-sm text-muted-foreground mt-2 bg-muted/30 p-3 rounded-md border">
             <Info className="w-4 h-4 mt-0.5 shrink-0" />
-            <p>{event.description}</p>
+            <p className="whitespace-pre-wrap">{event.description}</p>
           </div>
         )}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Button asChild variant="default" className="w-full sm:hidden h-12">
-          <Link to={`/eventos/${id}/check-in`}>
-            <ClipboardCheck className="w-4 h-4 mr-2" /> Controle de Presença
-          </Link>
-        </Button>
-
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="secondary" className="w-full h-12">
-              <LinkIcon className="w-4 h-4 mr-2" /> Link de Presença
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Link de Presença Rápida</DialogTitle>
-            </DialogHeader>
-            <div className="flex flex-col space-y-4 py-4">
-              <p className="text-sm text-muted-foreground">
-                Use o botão abaixo para abrir a interface simplificada de check-in para este evento.
-              </p>
-              <Button asChild className="w-full h-12 text-lg">
-                <Link to={`/eventos/${id}/check-in`}>Abrir Check-in</Link>
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
 
       <AlertDialog open={isDeleting} onOpenChange={setIsDeleting}>
@@ -187,25 +165,6 @@ export default function EventDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <div className="bg-card border rounded-lg p-6 space-y-4">
-        <h3 className="text-lg font-bold">Adicionar Visitantes</h3>
-        <p className="text-sm text-muted-foreground">
-          Registre visitantes manualmente na lista de presenças sem precisar cadastrá-los como
-          Seeds.
-        </p>
-        <div className="flex items-center gap-3">
-          <Input
-            value={visitorName}
-            onChange={(e) => setVisitorName(e.target.value)}
-            placeholder="Nome do visitante..."
-            className="max-w-md"
-          />
-          <Button onClick={handleAddVisitor} className="gap-2">
-            <UserPlus className="w-4 h-4" /> Adicionar
-          </Button>
-        </div>
-      </div>
 
       <div className="bg-card border rounded-lg p-6 space-y-4">
         <h3 className="text-lg font-bold">Lista de Presenças Registradas</h3>
