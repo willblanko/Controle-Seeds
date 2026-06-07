@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Search, CheckCircle, Users, Plus, UserPlus } from 'lucide-react'
+import { ArrowLeft, Search, CheckCircle, Users, Plus, UserPlus, Info } from 'lucide-react'
 
 import { useChurch } from '@/contexts/church-context'
 import { Input } from '@/components/ui/input'
@@ -38,29 +38,38 @@ export default function EventCheckIn() {
       const ev = await pb.collection('events').getOne(id)
       setEvent(ev)
 
-      const isGlobalEvent = !ev.church || ev.category === 'Connection' || ev.category === 'Camp'
+      const isGlobalEvent = ev.category === 'Connection' || ev.category === 'Camp'
 
-      const validChurchIds = isGlobalEvent
-        ? availableChurches.map((c) => c.id)
-        : ([ev.church].filter(Boolean) as string[])
+      let seedsData: any[] = []
+      let teamData: any[] = []
 
-      if (!isGlobalEvent) {
+      if (ev.category === 'Camp') {
+        seedsData = await pb.collection('seeds').getFullList()
+        teamData = await pb.collection('team_members').getFullList()
+      } else if (ev.church) {
+        // Fetch only related church records efficiently
+        const filterStr = `church='${ev.church}'`
+
+        // Check if there are guest churches
         const guestIds = availableChurches
           .filter((c) => (c as any).event_host === ev.church)
           .map((c) => c.id)
-        validChurchIds.push(...guestIds)
+
+        let finalFilter = filterStr
+        if (guestIds.length > 0) {
+          const guestFilter = guestIds.map((gId) => `church='${gId}'`).join(' || ')
+          finalFilter = `(${filterStr} || ${guestFilter})`
+        }
+
+        seedsData = await pb.collection('seeds').getFullList({ filter: finalFilter })
+        teamData = await pb.collection('team_members').getFullList({ filter: finalFilter })
+      } else if (isGlobalEvent) {
+        seedsData = await pb.collection('seeds').getFullList()
+        teamData = await pb.collection('team_members').getFullList()
       }
 
-      const allSeeds = await pb.collection('seeds').getFullList()
-      const allTeam = await pb.collection('team_members').getFullList()
-
-      if (ev.category === 'Camp') {
-        setSeeds(allSeeds) // For camp we might want to import any
-        setTeamMembers(allTeam)
-      } else {
-        setSeeds(allSeeds.filter((s) => validChurchIds.includes(s.church)))
-        setTeamMembers(allTeam.filter((t) => validChurchIds.includes(t.church)))
-      }
+      setSeeds(seedsData)
+      setTeamMembers(teamData)
 
       const atts = await pb.collection('attendances').getFullList({
         filter: `event='${id}'`,
@@ -188,6 +197,21 @@ export default function EventCheckIn() {
         <h2 className="text-xl font-bold mb-4">Evento não encontrado</h2>
         <Button asChild>
           <Link to="/eventos">Voltar</Link>
+        </Button>
+      </div>
+    )
+  }
+
+  if (!event.church && event.category !== 'Camp' && event.category !== 'Connection') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center max-w-md mx-auto p-4">
+        <Info className="h-16 w-16 text-muted-foreground mb-4" />
+        <h2 className="text-2xl font-bold mb-2">Sem igreja associada</h2>
+        <p className="text-muted-foreground mb-6">
+          Nenhum membro pode ser listado porque nenhuma igreja está atribuída a este evento.
+        </p>
+        <Button asChild>
+          <Link to={`/eventos/${event.id}`}>Voltar para o Evento</Link>
         </Button>
       </div>
     )
