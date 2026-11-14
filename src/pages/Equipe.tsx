@@ -342,7 +342,7 @@ export default function Equipe() {
           <h1 className="text-3xl font-bold tracking-tight">Equipe</h1>
           <p className="text-muted-foreground">Gerencie líderes e membros da sua equipe.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <ChurchSelector allowGlobal={false} />
 
           <Button

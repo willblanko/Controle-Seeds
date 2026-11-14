@@ -312,11 +312,11 @@ export default function Seeds() {
           <h1 className="text-3xl font-bold tracking-tight">Seeds</h1>
           <p className="text-muted-foreground">Gerencie o cadastro de seeds da sua igreja.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <ChurchSelector allowGlobal={false} />
           <Button
             variant="outline"
-            className="shrink-0 hidden md:flex"
+            className="shrink-0"
             onClick={() => {
               const csvContent =
                 'Nome;DataNascimento;Igreja;Sexo;MetodoEntrada;Responsavel1;Telefone1;Responsavel2;Telefone2;TemAlergia;DetalhesAlergia;TemMedicacao;DetalhesMedicacao;Observacoes\nExemplo Seed;01/01/2010;Sede;Masculino;Novo Membro;Pai;11999999999;;;Não;;Não;;\n'
@@ -382,7 +382,7 @@ export default function Seeds() {
 
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 shrink-0">
+              <Button className="gap-2 shrink-0 bg-blue-600 hover:bg-blue-700">
                 <Plus className="h-4 w-4" />
                 <span>Novo Seed</span>
               </Button>

@@ -37,7 +37,7 @@ export function ChurchSelector({ allowGlobal = false }: ChurchSelectorProps) {
   if (selectableChurches.length === 0) return null
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 w-full sm:w-auto">
       <ChurchIcon className="h-5 w-5 text-muted-foreground hidden sm:block" />
       <Select
         value={currentChurch?.id || 'all'}
@@ -45,7 +45,7 @@ export function ChurchSelector({ allowGlobal = false }: ChurchSelectorProps) {
           setCurrentChurch(val === 'all' ? null : selectableChurches.find((c) => c.id === val)!)
         }
       >
-        <SelectTrigger className="h-9 w-[220px] bg-background">
+        <SelectTrigger className="h-9 w-full sm:w-[220px] bg-background">
           <SelectValue placeholder="Selecione a igreja" />
         </SelectTrigger>
         <SelectContent>
