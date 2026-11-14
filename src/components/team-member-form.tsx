@@ -19,6 +19,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { TeamMember } from '@/types/team'
+import { ImageCropDialog, useImageCrop } from '@/components/image-crop-dialog'
+import { useRef, useState } from 'react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 const courseSchema = z
   .object({
@@ -218,27 +221,7 @@ export function TeamMemberForm({ initialData, onSubmit, onCancel }: Props) {
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="photoUrl"
-            render={({ field: { value, onChange, ...field } }) => (
-              <FormItem className="sm:col-span-2">
-                <FormLabel>Foto (opcional)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) onChange(file)
-                    }}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <PhotoField control={form.control} name="photoUrl" />
         </div>
 
         <div className="space-y-3 pt-2 border-t">
@@ -314,5 +297,69 @@ function CourseFieldRow({
         />
       )}
     </div>
+  )
+}
+
+function PhotoField({ control, name }: any) {
+  const { pendingFile, cropOpen, setCropOpen, pickFile } = useImageCrop()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [preview, setPreview] = useState<string | null>(null)
+
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field: { onChange } }) => (
+        <FormItem className="sm:col-span-2">
+          <FormLabel>Foto (opcional)</FormLabel>
+          <FormControl>
+            <div className="flex items-center gap-3">
+              {preview ? (
+                <Avatar className="h-16 w-16 border">
+                  <AvatarImage src={preview} alt="Pré-visualização da foto" />
+                  <AvatarFallback>F</AvatarFallback>
+                </Avatar>
+              ) : null}
+              <Input
+                ref={inputRef}
+                type="file"
+                accept="image/*"
+                className="w-auto flex-1"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  pickFile(file)
+                  // reseta para permitir re-seleção do mesmo arquivo depois
+                  e.target.value = ''
+                }}
+              />
+              {preview && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    onChange(undefined)
+                    setPreview(null)
+                  }}
+                >
+                  Remover
+                </Button>
+              )}
+            </div>
+          </FormControl>
+          <FormMessage />
+          <ImageCropDialog
+            file={pendingFile}
+            open={cropOpen}
+            onOpenChange={setCropOpen}
+            onCropped={(cropped) => {
+              onChange(cropped)
+              setPreview(URL.createObjectURL(cropped))
+            }}
+          />
+        </FormItem>
+      )}
+    />
   )
 }
