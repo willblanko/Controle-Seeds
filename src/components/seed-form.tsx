@@ -23,16 +23,16 @@ import {
 
 const formSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
-  entryMethod: z.string().min(1, 'Método de entrada é obrigatório'),
-  sex: z.string().min(1, 'Sexo é obrigatório'),
-  birthDate: z.string().min(1, 'Data de nascimento é obrigatória'),
-  guardian1: z.string().min(1, 'Responsável 1 é obrigatório'),
+  entryMethod: z.string().optional(),
+  sex: z.string().optional(),
+  birthDate: z.string().optional(),
+  guardian1: z.string().optional(),
   guardian2: z.string().optional(),
-  phone1: z.string().min(1, 'Telefone 1 é obrigatório'),
+  phone1: z.string().optional(),
   phone2: z.string().optional(),
-  hasAllergy: z.boolean().default(false),
+  hasAllergy: z.boolean(),
   allergyDetails: z.string().optional(),
-  hasMedication: z.boolean().default(false),
+  hasMedication: z.boolean(),
   medicationDetails: z.string().optional(),
   notes: z.string().optional(),
   photoUrl: z.any().optional(),
@@ -86,7 +86,7 @@ export function SeedForm({ initialData, onSubmit, onCancel }: any) {
             name="birthDate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Data de Nascimento*</FormLabel>
+                <FormLabel>Data de Nascimento</FormLabel>
                 <FormControl>
                   <Input type="date" {...field} />
                 </FormControl>
@@ -99,7 +99,7 @@ export function SeedForm({ initialData, onSubmit, onCancel }: any) {
             name="sex"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Sexo*</FormLabel>
+                <FormLabel>Sexo</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
@@ -122,7 +122,7 @@ export function SeedForm({ initialData, onSubmit, onCancel }: any) {
           name="entryMethod"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Método de Entrada*</FormLabel>
+              <FormLabel>Método de Entrada</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -145,7 +145,7 @@ export function SeedForm({ initialData, onSubmit, onCancel }: any) {
             name="guardian1"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Responsável 1*</FormLabel>
+                <FormLabel>Responsável 1</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
@@ -158,7 +158,7 @@ export function SeedForm({ initialData, onSubmit, onCancel }: any) {
             name="phone1"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Telefone 1*</FormLabel>
+                <FormLabel>Telefone 1</FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>

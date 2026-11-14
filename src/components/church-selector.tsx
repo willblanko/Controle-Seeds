@@ -21,7 +21,7 @@ export function ChurchSelector({ allowGlobal = false }: ChurchSelectorProps) {
   const location = useLocation()
 
   const selectableChurches = availableChurches
-    .filter((c) => !c.event_host)
+    .filter((c: any) => !c.event_host)
     .sort((a, b) => a.name.localeCompare(b.name))
 
   useEffect(() => {

@@ -46,10 +46,10 @@ const formSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   photoUrl: z.any().optional(),
   dateOfBirth: z.string().min(1, 'Data de nascimento é obrigatória'),
-  role: z.enum(['Líder', 'Membro', 'Selecione']).refine((val) => val !== 'Selecione', {
+  role: z.string().refine((val) => val !== 'Selecione' && val !== '', {
     message: 'Seleção obrigatória',
   }),
-  sex: z.enum(['Masculino', 'Feminino', 'Selecione']).refine((val) => val !== 'Selecione', {
+  sex: z.string().refine((val) => val !== 'Selecione' && val !== '', {
     message: 'Seleção obrigatória',
   }),
   phone: z.string().optional(),

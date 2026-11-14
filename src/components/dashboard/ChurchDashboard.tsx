@@ -19,8 +19,8 @@ export function ChurchDashboard() {
     validChurchIds.push(...guestIds)
   }
 
-  const filteredSeeds = seeds.filter((s) => validChurchIds.includes(s.church))
-  const filteredTeam = teamMembers.filter((t) => validChurchIds.includes(t.church))
+  const filteredSeeds = seeds.filter((s: any) => validChurchIds.includes(s.church))
+  const filteredTeam = teamMembers.filter((t: any) => validChurchIds.includes(t.church))
   const seedToTeamRatio =
     filteredTeam.length > 0
       ? (filteredSeeds.length / filteredTeam.length).toFixed(1)

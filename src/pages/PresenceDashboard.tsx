@@ -40,7 +40,7 @@ export default function PresenceDashboard() {
     )
     .sort((a, b) => a.date.localeCompare(b.date))
 
-  const activeSeeds = seeds.filter((s) =>
+  const activeSeeds = seeds.filter((s: any) =>
     isGlobalAdmin ? true : validChurchIds.includes(s.church),
   ).length
 
@@ -113,7 +113,7 @@ export default function PresenceDashboard() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" tickLine={false} axisLine={false} />
                 <YAxis tickLine={false} axisLine={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartTooltip content={<ChartTooltipContent payload={[] as any} />} />
                 <ChartLegend content={<ChartLegendContent />} />
                 <Bar dataKey="seeds" fill="var(--color-seeds)" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="team" fill="var(--color-team)" radius={[4, 4, 0, 0]} />

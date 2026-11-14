@@ -272,7 +272,10 @@ export function GlobalDashboard() {
                 <BarChart accessibilityLayer data={attendanceData}>
                   <CartesianGrid vertical={false} />
                   <XAxis dataKey="date" tickLine={false} tickMargin={10} axisLine={false} />
-                  <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent hideLabel payload={[] as any} />}
+                  />
                   <Bar dataKey="presentes" fill="var(--color-presentes)" radius={4} />
                 </BarChart>
               </ChartContainer>
@@ -298,7 +301,10 @@ export function GlobalDashboard() {
                 <AreaChart accessibilityLayer data={growthData}>
                   <CartesianGrid vertical={false} />
                   <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
-                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent payload={[] as any} />}
+                  />
                   <Area
                     type="linear"
                     dataKey="total"
